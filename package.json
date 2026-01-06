@@ -1,0 +1,26 @@
+{
+  "name": "nutrygym-uce",
+  "version": "1.0.0",
+  "description": "NutryGym: A comprehensive nutrition and fitness platform with microservices architecture, AI, and deployment on AWS. Academic project.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jatulcanaza/nutrygym-uce.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jatulcanaza/nutrygym-uce/issues"
+  },
+  "homepage": "https://github.com/jatulcanaza/nutrygym-uce#readme",
+  "devDependencies": {
+    "turbo": "^2.7.3"
+  }
+}
