@@ -25,16 +25,23 @@ auth-service/
 │
 ├── app/
 │   ├── core/           # Database and security configuration
-│   ├── models/         # ORM models
-│   ├── routes/         # Authentication and user routes
-│   ├── schemas/        # Pydantic schemas
+│   ├── models/         # SQLAlchemy ORM models
+│   ├── routes/         # API routes (auth, users)
 │   └── services/       # Business logic
 │
+├── venv/               # Local virtual environment (ignored in Git)
+├── __pycache__/        # Python cache files (ignored in Git)
+│
 ├── main.py             # Application entry point
-├── Dockerfile          # Microservice image
-├── docker-compose.yml  # Orchestration with PostgreSQL
+├── init_db.py          # Database initialization script
+├── test_db.py          # Database connection tests
+│
+├── Dockerfile          # Docker image definition
+├── docker-compose.yml  # Service orchestration with PostgreSQL
 ├── requirements.txt   # Python dependencies
-└── README.md           # Documentation
+├── README.md           # Project documentation
+└── .env                # Environment variables (NOT committed)
+
 ````
 
 ---
@@ -108,10 +115,9 @@ The service will be available at:
 
 ## 👨‍💻 Author
 
-Juan Tulcanaza
-Developed as part of the **NutriGym UCE** system
-Degree: Information Systems Engineering
-Central University of Ecuador
+* Juan Tulcanaza
+* Developed as part of the **NutriGym UCE** system
+* Degree: Information Systems Engineering
+* Central University of Ecuador
 
 ````
----
