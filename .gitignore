@@ -70,9 +70,35 @@ node_modules
 npm-debug.log
 Dockerfile
 .dockerignore
+.gitignore
 .git
 '@ | Set-Content -Path .dockerignore -Encoding UTF8
 
 # Python
+
 .venv/
+venv/
+env/
+**/venv/
+**/.venv/
+services/*/venv/
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
