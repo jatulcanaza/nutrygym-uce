@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  authorization-service:
+    build: .
+    container_name: authorization-service
+    ports:
+      - "3003:3003"
+    env_file:
+      - .env
