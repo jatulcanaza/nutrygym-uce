@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  user-profile-service:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "3002:3002"
+    depends_on:
+      user-profile-db:
+        condition: service_healthy  # ⬅️ IMPORTANTE: Esperar que BD esté healthy
+    restart: on-failure  # ⬅️ Reiniciar si falla
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  user-profile-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: user_profile_db
+      POSTGRES_USER: user_profile_user
+      POSTGRES_PASSWORD: user_profile_pass
+    healthcheck:  # ⬅️ AÑADIR HEALTHCHECK
+      test: ["CMD-SHELL", "pg_isready -U user_profile_user -d user_profile_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
