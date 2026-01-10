@@ -1,0 +1,78 @@
+# Crear .gitignore
+@'
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Production
+build/
+dist/
+.out/
+.next/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.qa
+.env.prod
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+'@ | Set-Content -Path .gitignore -Encoding UTF8
+
+# Crear .nvmrc
+echo "18.0.0" | Set-Content -Path .nvmrc
+
+# Crear .editorconfig
+@'
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.md]
+trim_trailing_whitespace = false
+'@ | Set-Content -Path .editorconfig -Encoding UTF8
+
+# Crear .dockerignore
+@'
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.git
+'@ | Set-Content -Path .dockerignore -Encoding UTF8
+
+# Python
+.venv/
+__pycache__/
