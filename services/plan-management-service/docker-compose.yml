@@ -1,0 +1,43 @@
+# docker-compose.yml
+services:
+  plan-management:
+    build: .
+    ports:
+      - "3005:3005"
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nutrigym-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: nutrigym_plans
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - plan_postgres_data:/var/lib/postgresql/data
+    networks:
+      - nutrigym-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d nutrigym_plans"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  nutrigym-network:
+    external: true
+
+volumes:
+  plan_postgres_data:
