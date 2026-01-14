@@ -26,6 +26,9 @@ dist/
 *.tfstate
 *.tfstate.backup
 *.tfvars
+# Terraform lock files
+**/.terraform.tfstate.lock.info
+**/.terraform.lock.hcl
 
 # Docker
 docker-compose.override.yml

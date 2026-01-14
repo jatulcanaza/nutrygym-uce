@@ -1,10 +1,8 @@
 resource "aws_security_group" "bastion" {
-  name        = "${var.name}-sg"
-  description = "Bastion security group"
-  vpc_id      = var.vpc_id
+  name   = "${var.name}-sg"
+  vpc_id = var.vpc_id
 
   ingress {
-    description = "SSH from admin IP"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -17,24 +15,18 @@ resource "aws_security_group" "bastion" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "${var.name}-sg"
-  }
 }
 
 resource "aws_instance" "this" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  subnet_id              = var.subnet_id
-  key_name               = var.key_name
-  associate_public_ip_address = true
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = var.subnet_id
+  key_name      = var.key_name
 
-  vpc_security_group_ids = [
-    aws_security_group.bastion.id
-  ]
+  vpc_security_group_ids = [aws_security_group.bastion.id]
+}
 
-  tags = {
-    Name = var.name
-  }
+resource "aws_eip" "this" {
+  instance = aws_instance.this.id
+  domain   = "vpc"
 }

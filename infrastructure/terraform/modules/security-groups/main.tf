@@ -4,7 +4,6 @@ resource "aws_security_group" "alb" {
   vpc_id      = var.vpc_id
 
   ingress {
-    description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -12,7 +11,6 @@ resource "aws_security_group" "alb" {
   }
 
   ingress {
-    description = "HTTPS"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -25,10 +23,6 @@ resource "aws_security_group" "alb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "nutrygym-qa-alb-sg"
-  }
 }
 
 resource "aws_security_group" "microservices" {
@@ -37,7 +31,6 @@ resource "aws_security_group" "microservices" {
   vpc_id      = var.vpc_id
 
   ingress {
-    description     = "Traffic from ALB"
     from_port       = 3000
     to_port         = 3000
     protocol        = "tcp"
@@ -49,42 +42,5 @@ resource "aws_security_group" "microservices" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "nutrygym-qa-ms-sg"
-  }
-}
-
-resource "aws_security_group" "db" {
-  name        = "nutrygym-qa-db-sg"
-  description = "Database SG"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    description     = "PostgreSQL"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.microservices.id]
-  }
-
-  ingress {
-    description     = "MongoDB"
-    from_port       = 27017
-    to_port         = 27017
-    protocol        = "tcp"
-    security_groups = [aws_security_group.microservices.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "nutrygym-qa-db-sg"
   }
 }

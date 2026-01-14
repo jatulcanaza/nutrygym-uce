@@ -62,10 +62,10 @@ module "ec2_data_host" {
 module "db_security_group" {
   source = "../../modules/security-groups/db"
 
-  name       = "nutrygym-qa-db-sg"
-  vpc_id     = module.vpc.vpc_id
-  app_sg_id  = module.alb_asg.app_sg_id
-  db_port    = 27017 # MongoDB (cambia a 5432 si usas Postgres)
+  name      = "nutrygym-qa-db-sg"
+  vpc_id    = module.vpc.vpc_id
+  app_sg_id = module.security_groups.microservices_sg_id
+  db_port   = 27017
 }
 
 /* Bastion Host */

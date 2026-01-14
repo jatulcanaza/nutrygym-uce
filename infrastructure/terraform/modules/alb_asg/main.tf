@@ -11,12 +11,12 @@ resource "aws_lb" "this" {
   }
 }
 
-/*Target Group*/
+/* Target Group */
 resource "aws_lb_target_group" "this" {
   name     = "${var.project_name}-${var.environment}-tg"
   port     = 3000
   protocol = "HTTP"
-  vpc_id  = var.vpc_id
+  vpc_id   = var.vpc_id
 
   health_check {
     path                = "/health"
@@ -26,13 +26,9 @@ resource "aws_lb_target_group" "this" {
     unhealthy_threshold = 2
     matcher             = "200"
   }
-
-  tags = {
-    Project     = var.project_name
-    Environment = var.environment
-  }
 }
-/*Listener*/
+
+/* Listener */
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
@@ -43,7 +39,8 @@ resource "aws_lb_listener" "http" {
     target_group_arn = aws_lb_target_group.this.arn
   }
 }
-/*Launch Template*/
+
+/* Launch Template */
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.project_name}-${var.environment}-lt-"
   image_id      = var.ami_id
@@ -53,7 +50,20 @@ resource "aws_launch_template" "this" {
 
   user_data = base64encode(<<EOF
 #!/bin/bash
-echo "Microservice started"
+yum update -y
+
+# Docker
+amazon-linux-extras install docker -y
+systemctl start docker
+systemctl enable docker
+usermod -aG docker ec2-user
+
+# Docker Compose
+curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) \
+-o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+
+echo "Docker OK" > /home/ec2-user/docker_ready.txt
 EOF
   )
 
@@ -66,7 +76,8 @@ EOF
     }
   }
 }
-/*Auto Scaling Group*/
+
+/* Auto Scaling Group */
 resource "aws_autoscaling_group" "this" {
   name                = "${var.project_name}-${var.environment}-asg"
   desired_capacity    = var.desired_capacity
@@ -79,9 +90,7 @@ resource "aws_autoscaling_group" "this" {
     version = "$Latest"
   }
 
-  target_group_arns = [
-    aws_lb_target_group.this.arn
-  ]
+  target_group_arns = [aws_lb_target_group.this.arn]
 
   tag {
     key                 = "Project"
