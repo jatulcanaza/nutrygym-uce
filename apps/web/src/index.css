@@ -1,0 +1,68 @@
+body {
+  margin: 0;
+  font-family: Quicksand, sans-serif;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 30px;
+  background: #2e7d32;
+  color: white;
+}
+
+.nav-links a {
+  margin: 0 10px;
+  color: white;
+  text-decoration: none;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-around;
+  padding: 80px;
+}
+
+.hero-box {
+  background: #81c784;
+  padding: 40px;
+  border-radius: 10px;
+}
+
+.page {
+  padding: 40px;
+}
+
+.center {
+  text-align: center;
+}
+
+.auth {
+  display: flex;
+  height: 100vh;
+}
+
+input {
+  padding: 10px;
+}
+
+.btn-primary {
+  background: #2e7d32;
+  color: white;
+  padding: 10px;
+  border: none;
+}
+
+.btn-outline {
+  background: transparent;
+  color: white;
+  border: 1px solid white;
+  padding: 8px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #2e7d32;
+  cursor: pointer;
+}

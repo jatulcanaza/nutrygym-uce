@@ -1,0 +1,83 @@
+/* ===== NAVBAR BASE ===== */
+.navbar {
+  height: 72px;
+  padding: 0 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #0f172a;
+}
+
+/* ===== LOGO ===== */
+.nav-left {
+  display: flex;
+  align-items: center;
+}
+
+.nav-logo {
+  height: 62px;
+  cursor: pointer;
+}
+
+/* ===== MENU ===== */
+.nav-menu {
+  display: flex;
+  gap: 36px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-menu a {
+  position: relative;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 15px;
+  transition: color 0.2s ease;
+}
+
+/* underline animado */
+.nav-menu a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 0%;
+  height: 2px;
+  background-color: #80c522;
+  transition: width 0.25s ease;
+}
+
+.nav-menu a:hover {
+  color: #80c522;
+}
+
+.nav-menu a:hover::after {
+  width: 100%;
+}
+
+/* ===== AUTH LINK ===== */
+.nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.auth-link {
+  padding: 8px 18px;
+  border-radius: 999px;
+  background-color: white;              /* BLANCO por defecto */
+  color: #80c522;                        /* VERDE NutryGym */
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1.5px solid #80c522;
+  transition: all 0.25s ease;
+}
+
+/* HOVER: inversión */
+.auth-link:hover {
+  background-color: #80c522;             /* VERDE */
+  color: white;                          /* TEXTO BLANCO */
+  box-shadow: 0 0 0 4px rgba(128, 197, 34, 0.18);
+}

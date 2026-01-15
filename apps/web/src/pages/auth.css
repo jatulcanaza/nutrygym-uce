@@ -1,0 +1,158 @@
+
+/* ===== CONTENEDOR PRINCIPAL ===== */
+.auth-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100vh;
+}
+
+
+/* ===== LEFT ===== */
+.auth-left {
+  position: relative;
+  flex: 1;
+  background-color: #353634;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.auth-left::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("/fruits-bg.png");
+  background-repeat: repeat;
+  background-size: 600px;
+  opacity: 0.75;          /* AJUSTA AQUÍ */
+  z-index: 0;
+}
+
+.auth-left > * {
+  position: relative;
+  z-index: 1;
+}
+
+
+
+
+/* ===== LOGO ===== */
+.logo {
+  width: 250px;
+}
+
+
+/* ===== RIGHT ===== */
+.auth-right {
+  position: relative;
+  flex: 1;
+  padding: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+.auth-right::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("/fruits-bg.png");
+  background-repeat: repeat;
+  background-size: 600px;
+  opacity: 0.20;          /* MÁS SUAVE EN BLANCO */
+  z-index: 0;
+}
+
+.auth-right > * {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* ===== TITULOS ===== */
+.auth-right h1 {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.green {
+  color: #80c522;
+}
+
+.subtitle {
+  margin-bottom: 32px;
+  color: #555;
+}
+
+/* ===== FORM ===== */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-form label {
+  font-size: 14px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.auth-form input {
+  padding: 12px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.auth-form button {
+  margin-top: 12px;
+  background-color: #80c522;
+  border: none;
+  padding: 14px;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+/* HOVER: un poco más oscuro */
+.auth-form button:hover:not(:disabled) {
+  background-color: #6fae1d; /* verde ligeramente más oscuro */
+}
+
+/* FEEDBACK DE CLICK */
+.auth-form button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+
+/* ===== SWITCH ===== */
+.switch {
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.switch span {
+  color: #80c522;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* ===== BACK ===== */
+.back-home {
+  margin-top: 24px;
+  text-decoration: none;
+  color: black;
+  font-size: 14px;
+}
+
+small {
+  color: red;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
