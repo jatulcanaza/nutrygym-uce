@@ -7,8 +7,12 @@ const API_URL = "http://localhost:3001";
 // =======================
 export async function loginUser(email: string, password: string) {
   const formData = new URLSearchParams();
-  formData.append("username", email); // FastAPI usa username
+  formData.append("username", email);
   formData.append("password", password);
+  formData.append("grant_type", "");
+  formData.append("scope", "");
+  formData.append("client_id", "");
+  formData.append("client_secret", "");
 
   const response = await axios.post(
     `${API_URL}/auth/login`,
@@ -20,7 +24,7 @@ export async function loginUser(email: string, password: string) {
     }
   );
 
-  return response.data;
+  return response.data; // access_token, refresh_token
 }
 
 // =======================
@@ -41,18 +45,14 @@ export async function registerUser(
 }
 
 // =======================
-// LOGOUT
+// GET USER INFO
 // =======================
-export async function logoutUser(token: string) {
-  const response = await axios.post(
-    `${API_URL}/auth/logout`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+export async function getMe(token: string) {
+  const response = await axios.get(`${API_URL}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
   return response.data;
 }
