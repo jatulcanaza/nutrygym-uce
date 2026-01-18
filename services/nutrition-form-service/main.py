@@ -3,6 +3,9 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import time
 import logging
+import os
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.routes.nutrition_form import router
 from app.core.database import Base, engine, wait_for_db
 from app.core.kafka import shutdown_kafka, ensure_kafka_ready
@@ -13,6 +16,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -49,6 +53,20 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# =========================
+# CORS
+# =========================
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Include routers
 app.include_router(router)
