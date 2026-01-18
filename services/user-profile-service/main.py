@@ -3,6 +3,8 @@ from app.core.database import Base, engine
 from app.routes.profiles import router
 import time
 import logging
+import os
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import OperationalError
 
 # Configurar logging
@@ -12,6 +14,16 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="User Profile Service",
     version="1.0.0"
+)
+# ---- CORS (permite llamadas desde el frontend Vite) ----
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 def wait_for_db(max_retries=5, delay=5):
