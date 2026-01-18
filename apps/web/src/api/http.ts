@@ -1,10 +1,11 @@
 import axios from "axios";
 
-const http = axios.create({
-  baseURL: "http://localhost:3001",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+export function createHttp(baseURL: string) {
+  const http = axios.create({ baseURL });
 
-export default http;
+  // Si vas a usar token, lo ideal es NO forzar Content-Type aquí.
+  // Axios lo setea automáticamente según el body (JSON, form, etc.)
+  http.defaults.headers.common["Accept"] = "application/json";
+
+  return http;
+}

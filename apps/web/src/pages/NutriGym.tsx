@@ -38,7 +38,8 @@ type Plan = {
 };
 
 export default function NutriGym() {
-  const { user, isAuthenticated, logout } = useAuth();
+ const { user, token, isAuthenticated, logout } = useAuth();
+
 
   // ====== UI state
   const [showProfileModal, setShowProfileModal] = useState(false);

@@ -4,7 +4,9 @@ import About from "../pages/About";
 import Plans from "../pages/Plans";
 import NutriGym from "../pages/NutriGym";
 import Auth from "../pages/Auth";
-import NutritionForm from "../pages/NutritionForm";
+import AdminGym from "../pages/AdminGym";
+import NotAuthorized from "../pages/NotAuthorized";
+import { ProtectedRoute } from "./ProtectedRoute";
 
 export default function AppRouter() {
   return (
@@ -12,9 +14,27 @@ export default function AppRouter() {
       <Route path="/" element={<Welcome />} />
       <Route path="/about" element={<About />} />
       <Route path="/plans" element={<Plans />} />
-      <Route path="/nutrigym" element={<NutriGym />} />
       <Route path="/auth" element={<Auth />} />
-      <Route path="/nutrition-form" element={<NutritionForm />} />
+
+      <Route path="/not-authorized" element={<NotAuthorized />} />
+
+      <Route
+        path="/nutrigym"
+        element={
+          <ProtectedRoute allowedRoles={["ESTUDIANTE"]}>
+            <NutriGym />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <AdminGym />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }
