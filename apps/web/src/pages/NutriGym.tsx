@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import "./NutriGym.css";
+import { getMyProfile, createProfile, updateMyProfile } from "../api/profile.api";
+
+
 
 // Recomendado: coloca la imagen en public y usa /nutrition-hero.png
 // Si sí la tienes en src/assets, puedes volver a importarla.
@@ -46,7 +49,8 @@ export default function NutriGym() {
   const [showNutritionModal, setShowNutritionModal] = useState(false);
 
   // simula "perfil existe"; luego lo reemplazas por GET /profiles/me
-  const [hasProfile, setHasProfile] = useState(false);
+const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+const [loadingProfile, setLoadingProfile] = useState(true);
 
   // ====== Forms
   const [profileForm, setProfileForm] = useState<ProfileForm>({
@@ -77,12 +81,48 @@ export default function NutriGym() {
 
   // ====== Scroll lock cuando modal abierto
   useEffect(() => {
-    const open = showProfileModal || showNutritionModal;
-    document.body.style.overflow = open ? "hidden" : "auto";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [showProfileModal, showNutritionModal]);
+  const open = showProfileModal || showNutritionModal;
+  document.body.style.overflow = open ? "hidden" : "auto";
+  return () => {
+    document.body.style.overflow = "auto";
+  };
+}, [showProfileModal, showNutritionModal]);
+  // ====== Chequea si el perfil existe al montar
+useEffect(() => {
+  if (!token) return;
+
+  const checkProfile = async () => {
+    try {
+      const profile = await getMyProfile(token);
+
+      // ✅ Perfil existe
+      setHasProfile(true);
+
+      // ✅ Precargar el formulario con lo que viene del backend
+      setProfileForm({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        birth_date: profile.birth_date,
+        gender: profile.gender as any,
+        height_cm: String(profile.height_cm),
+        weight_kg: String(profile.weight_kg),
+        goal: profile.goal as any,
+        activity_level: profile.activity_level as any,
+      });
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        setHasProfile(false); // no existe
+      } else {
+        console.error("Error checking profile", err);
+      }
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  checkProfile();
+}, [token]);
+
 
   // ====== Helpers
   const username = useMemo(() => {
@@ -90,11 +130,16 @@ export default function NutriGym() {
     return email.includes("@") ? email.split("@")[0] : "user";
   }, [user?.email]);
 
-  const openFlow = () => {
-    // si no hay login, que se maneje en router/guard; aquí asumimos ya autenticado
-    if (!hasProfile) setShowProfileModal(true);
-    else setShowNutritionModal(true);
-  };
+const openFlow = () => {
+  if (loadingProfile) return;
+
+  if (!hasProfile) {
+    setShowProfileModal(true);
+  } else {
+    setShowNutritionModal(true);
+  }
+};
+
 
   // ====== Validaciones
   const validateProfile = (data: ProfileForm) => {
@@ -131,14 +176,48 @@ export default function NutriGym() {
   };
 
   // ====== Acciones de perfil
-  const handleProfileNext = () => {
-    if (!validateProfile(profileForm)) return;
+const handleProfileNext = async () => {
+  if (!validateProfile(profileForm)) return;
+  if (!token) return;
 
-    // Aquí luego conectas POST /profiles
-    setHasProfile(true);
+  const payload = {
+    first_name: profileForm.first_name,
+    last_name: profileForm.last_name,
+    birth_date: profileForm.birth_date,
+    gender: profileForm.gender,
+    height_cm: Number(profileForm.height_cm),
+    weight_kg: Number(profileForm.weight_kg),
+    goal: profileForm.goal,
+    activity_level: profileForm.activity_level,
+  };
+
+  try {
+    // ✅ Si NO existe perfil -> POST
+    if (!hasProfile) {
+      await createProfile(token, payload);
+      setHasProfile(true);
+    } else {
+      // ✅ Si YA existe -> PUT (update)
+      await updateMyProfile(token, payload);
+    }
+
     setShowProfileModal(false);
     setShowNutritionModal(true);
-  };
+  } catch (err: any) {
+    // Si backend responde "ya existe" al intentar crear, abrimos nutrition
+    if (err?.response?.status === 409) {
+      setHasProfile(true);
+      setShowProfileModal(false);
+      setShowNutritionModal(true);
+      return;
+    }
+
+    console.error("Error saving profile", err);
+    alert("Failed to save profile. Please try again.");
+  }
+};
+
+
 
   // ====== Acciones de nutrición/plan
   const handleGeneratePlan = () => {
@@ -224,9 +303,14 @@ export default function NutriGym() {
           </p>
 
           <div className="hero-actions">
-            <button className="btn btn-primary" onClick={openFlow}>
-              Get my nutrition plan
+            <button
+              className="btn btn-primary"
+              onClick={openFlow}
+              disabled={loadingProfile}
+            >
+              {loadingProfile ? "Loading..." : "Get my nutrition plan"}
             </button>
+
 
             {isAuthenticated && (
               <button className="btn btn-ghost" onClick={logout} type="button">
