@@ -22,7 +22,7 @@ export default function Footer() {
           <div>
             <h4>Our Gym</h4>
             <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
+            <Link to="about">About</Link>
             <Link to="/contact">Contact</Link>
           </div>
 
@@ -43,13 +43,25 @@ export default function Footer() {
 
         {/* RIGHT: SOCIAL */}
         <div className="footer-social">
-          <a href="#" aria-label="Facebook">
+        <a
+            href="https://www.facebook.com/lacentralec/?locale=es_LA"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Facebook"
+        >
             <FaFacebookF />
-          </a>
-          <a href="#" aria-label="LinkedIn">
+        </a>
+
+        <a
+            href="https://www.linkedin.com/in/juan-tulcanaza"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="LinkedIn"
+        >
             <FaLinkedinIn />
-          </a>
+        </a>
         </div>
+
 
       </div>
 
