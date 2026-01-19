@@ -1,3 +1,4 @@
+/* src/pages/Auth.css */
 
 /* ===== CONTENEDOR PRINCIPAL ===== */
 .auth-container {
@@ -6,7 +7,6 @@
   display: flex;
   height: 100vh;
 }
-
 
 /* ===== LEFT ===== */
 .auth-left {
@@ -26,7 +26,7 @@
   background-image: url("/fruits-bg.png");
   background-repeat: repeat;
   background-size: 600px;
-  opacity: 0.75;          /* AJUSTA AQUÍ */
+  opacity: 0.75;
   z-index: 0;
 }
 
@@ -35,14 +35,10 @@
   z-index: 1;
 }
 
-
-
-
 /* ===== LOGO ===== */
 .logo {
   width: 250px;
 }
-
 
 /* ===== RIGHT ===== */
 .auth-right {
@@ -63,7 +59,7 @@
   background-image: url("/fruits-bg.png");
   background-repeat: repeat;
   background-size: 600px;
-  opacity: 0.20;          /* MÁS SUAVE EN BLANCO */
+  opacity: 0.20;
   z-index: 0;
 }
 
@@ -71,7 +67,6 @@
   position: relative;
   z-index: 1;
 }
-
 
 /* ===== TITULOS ===== */
 .auth-right h1 {
@@ -108,6 +103,21 @@
   font-size: 14px;
 }
 
+/* ✅ Input error state */
+.auth-form input.input-error {
+  border-color: rgba(220, 38, 38, 0.55);
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12);
+}
+
+/* ✅ Field error (debajo del input) */
+.field-error {
+  display: block;
+  margin: -10px 0 12px;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .auth-form button {
   margin-top: 12px;
   background-color: #80c522;
@@ -120,16 +130,13 @@
   transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
-/* HOVER: un poco más oscuro */
 .auth-form button:hover:not(:disabled) {
-  background-color: #6fae1d; /* verde ligeramente más oscuro */
+  background-color: #6fae1d;
 }
 
-/* FEEDBACK DE CLICK */
 .auth-form button:active:not(:disabled) {
   transform: scale(0.98);
 }
-
 
 /* ===== SWITCH ===== */
 .switch {
@@ -151,8 +158,25 @@
   font-size: 14px;
 }
 
-small {
-  color: red;
-  font-size: 12px;
-  margin-bottom: 8px;
+/* ✅ Alerts (arriba del form) */
+.auth-alert {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  border: 1px solid transparent;
+}
+
+.auth-alert-error {
+  background: rgba(220, 38, 38, 0.10);
+  border-color: rgba(220, 38, 38, 0.35);
+  color: #7f1d1d;
+}
+
+.auth-alert-success {
+  background: rgba(34, 197, 94, 0.10);
+  border-color: rgba(34, 197, 94, 0.30);
+  color: #14532d;
 }
