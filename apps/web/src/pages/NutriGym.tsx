@@ -74,6 +74,12 @@ export default function NutriGym() {
   const [generating, setGenerating] = useState(false);
   const generatingRef = useRef(false);
   const [editingPlan, setEditingPlan] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [confirmAction, setConfirmAction] = useState<null | "end" | "cancel">(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+
 
 
 
@@ -229,6 +235,9 @@ export default function NutriGym() {
   }, [user?.email]);
 
   const openFlow = () => {
+    setErrorMsg("");
+    setSuccessMsg("");
+
     if (loadingProfile || loadingNutritionForm) return;
 
     // ✅ Si ya hay plan activo, no abras modales
@@ -408,12 +417,14 @@ export default function NutriGym() {
       await refreshPlans();
 
     } catch (err: any) {
+      let msg = "Failed to generate plan. Please try again.";
+
       if (err?.response?.status === 409) {
-        alert("You already have an active plan. End or cancel it first.");
-        return;
+        msg = "You already have an active plan. Please end or cancel it first.";
       }
-      console.error("Error generating plan", err);
-      alert("Failed to generate plan. Please try again.");
+
+      setErrorMsg(msg);
+
     } finally {
       setGenerating(false);
       generatingRef.current = false;
@@ -424,58 +435,62 @@ export default function NutriGym() {
 
 
   const handleEditPlan = () => {
+    setErrorMsg("");
+    setSuccessMsg("");
+
     setEditingPlan(true);
     setShowNutritionModal(true);
   };
 
 
-  const handleEndPlan = async () => {
-    if (!token || !plan) return;
+const handleEndPlan = async () => {
+  if (!token || !plan) return;
 
-    const ok = window.confirm("Do you want to end this plan?");
-    if (!ok) return;
+  setErrorMsg("");
+  setSuccessMsg("");
+  setConfirmLoading(true);
 
-    try {
-      await endPlan(token);
+  try {
+    await endPlan(token);
 
-      setPlan(null);
-      await refreshPlans();
-      try {
-        await getCurrentPlan(token);
-      } catch (e: any) {
-        // si es 404, perfecto, no hay plan activo
-      }
+    setPlan(null);
+    await refreshPlans();
 
-    } catch (err: any) {
-      console.error("Error ending plan", err);
-      alert("Failed to end plan. Please try again.");
-    }
-  };
-
+    setSuccessMsg("Plan completed successfully. Great work — keep it up. You can generate a new plan anytime.");
+  } catch (err: any) {
+    console.error("Error ending plan", err);
+    setErrorMsg("Failed to end the plan. Please try again.");
+  } finally {
+    setConfirmLoading(false);
+    setConfirmAction(null);
+  }
+};
 
 
-  const handleCancelPlan = async () => {
-    if (!token || !plan) return;
 
-    const ok = window.confirm("Do you want to cancel this plan?");
-    if (!ok) return;
 
-    try {
-      await cancelPlan(token);
+const handleCancelPlan = async () => {
+  if (!token || !plan) return;
 
-      setPlan(null);
-      await refreshPlans();
-      try {
-        await getCurrentPlan(token);
-      } catch (e: any) {
-        // si es 404, perfecto, no hay plan activo
-      }
+  setErrorMsg("");
+  setSuccessMsg("");
+  setConfirmLoading(true);
 
-    } catch (err: any) {
-      console.error("Error canceling plan", err);
-      alert("Failed to cancel plan. Please try again.");
-    }
-  };
+  try {
+    await cancelPlan(token);
+
+    setPlan(null);
+    await refreshPlans();
+
+    setSuccessMsg("Plan canceled. You can generate a new plan anytime.");
+  } catch (err: any) {
+    console.error("Error canceling plan", err);
+    setErrorMsg("Failed to cancel the plan. Please try again.");
+  } finally {
+    setConfirmLoading(false);
+    setConfirmAction(null);
+  }
+};
 
 
 
@@ -560,11 +575,25 @@ export default function NutriGym() {
           </div>
         </div>
       </div>
+      {errorMsg && (
+                <div className="auth-alert auth-alert-error">
+                  {errorMsg}
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="auth-alert auth-alert-success">
+                  {successMsg}
+                </div>
+              )}
 
       {/* PLAN */}
       {plan && (
+        
         <div className="panel">
           <div className="panel-header">
+            
+
             <div>
               <h2>{plan.title}</h2>
               <p className="muted">
@@ -577,12 +606,22 @@ export default function NutriGym() {
               <button className="btn btn-primary" type="button" onClick={handleEditPlan}>
                 Edit nutrition form
               </button>
-              <button className="btn btn-danger" type="button" onClick={handleEndPlan}>
-                End plan
-              </button>
-              <button className="btn btn-ghost" type="button" onClick={handleCancelPlan}>
-                Cancel plan
-              </button>
+              <button
+                  className="btn btn-danger"
+                  type="button"
+                  onClick={() => setConfirmAction("end")}
+                >
+                  End plan
+                </button>
+
+                <button
+                  className="btn btn-ghost"
+                  type="button"
+                  onClick={() => setConfirmAction("cancel")}
+                >
+                  Cancel plan
+                </button>
+
             </div>
           </div>
 
@@ -997,6 +1036,56 @@ export default function NutriGym() {
           </div>
         </div>
       )}
+      {confirmAction && (
+  <div
+    className="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) setConfirmAction(null);
+    }}
+  >
+    <div className="confirm-card">
+      <div className="confirm-title">
+        {confirmAction === "end" ? "End this plan?" : "Cancel this plan?"}
+      </div>
+
+      <div className="confirm-desc">
+        {confirmAction === "end"
+          ? "This will mark your current plan as completed and archive it in your history. You can generate a new one afterwards."
+          : "This will cancel your current plan and archive it in your history. You can generate a new one afterwards."}
+      </div>
+
+      <div className="confirm-actions">
+        <button
+          className="btn btn-ghost"
+          type="button"
+          disabled={confirmLoading}
+          onClick={() => setConfirmAction(null)}
+        >
+          Back
+        </button>
+
+        <button
+          className={`btn ${confirmAction === "end" ? "btn-danger" : "btn-primary"}`}
+          type="button"
+          disabled={confirmLoading}
+          onClick={() => {
+            if (confirmAction === "end") handleEndPlan();
+            if (confirmAction === "cancel") handleCancelPlan();
+          }}
+        >
+          {confirmLoading
+            ? "Processing..."
+            : confirmAction === "end"
+              ? "Yes, end plan"
+              : "Yes, cancel plan"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </section>
   );
 }

@@ -643,3 +643,61 @@
 .tips-box li{
   margin: 6px 0;
 }
+/* ===== IN-PAGE NOTIFICATIONS (same style as Auth) ===== */
+.auth-alert {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-alert-error {
+  background: rgba(220, 38, 38, 0.10);
+  border-color: rgba(220, 38, 38, 0.35);
+  color: #7f1d1d;
+}
+
+.auth-alert-success {
+  background: rgba(34, 197, 94, 0.10);
+  border-color: rgba(34, 197, 94, 0.30);
+  color: #14532d;
+}
+/* ===== Center notifications ===== */
+.center-notice {
+  width: min(900px, 100%);
+  margin: 18px auto 0;
+}
+
+/* ===== Confirm modal (uses existing modal-overlay) ===== */
+.confirm-card {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px 18px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.25);
+  animation: fadeUp 220ms ease both;
+}
+
+.confirm-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.confirm-desc {
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
