@@ -66,3 +66,17 @@ input {
   color: #2e7d32;
   cursor: pointer;
 }
+/* ===== Sticky footer layout ===== */
+html, body, #root {
+  height: 100%;
+}
+
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content {
+  flex: 1;
+}

@@ -4,11 +4,15 @@ import AppRouter from "./router/AppRouter";
 
 function App() {
   return (
-    <>
+    <div className="app-layout">
       <Navbar />
-      <AppRouter />
+
+      <main className="app-content">
+        <AppRouter />
+      </main>
+
       <Footer />
-    </>
+    </div>
   );
 }
 
