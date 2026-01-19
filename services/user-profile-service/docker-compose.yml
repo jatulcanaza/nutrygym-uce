@@ -9,10 +9,12 @@ services:
       - "3002:3002"
     depends_on:
       user-profile-db:
-        condition: service_healthy  # ⬅️ IMPORTANTE: Esperar que BD esté healthy
-    restart: on-failure  # ⬅️ Reiniciar si falla
+        condition: service_healthy
+    restart: on-failure
     environment:
       - PYTHONUNBUFFERED=1
+    networks:
+      - nutrigym-network
 
   user-profile-db:
     image: postgres:15
@@ -20,7 +22,7 @@ services:
       POSTGRES_DB: user_profile_db
       POSTGRES_USER: user_profile_user
       POSTGRES_PASSWORD: user_profile_pass
-    healthcheck:  # ⬅️ AÑADIR HEALTHCHECK
+    healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user_profile_user -d user_profile_db"]
       interval: 5s
       timeout: 5s
@@ -28,6 +30,12 @@ services:
       start_period: 10s
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nutrigym-network
 
 volumes:
   postgres_data:
+
+networks:
+  nutrigym-network:
+    external: true

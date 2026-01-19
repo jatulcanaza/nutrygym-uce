@@ -8,3 +8,9 @@ services:
       - "3003:3003"
     env_file:
       - .env
+    networks:
+      - nutrigym-network
+
+networks:
+  nutrigym-network:
+    external: true

@@ -23,7 +23,7 @@ class MealPlan(Base):
     # Estado y versión
     status = Column(String, default="draft")  # draft, active, archived
     version = Column(Integer, default=1)
-    is_current = Column(Boolean, default=True)  # Para saber cuál es el plan activo
+    is_current = Column(Boolean, default=False)  # Para saber cuál es el plan activo
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

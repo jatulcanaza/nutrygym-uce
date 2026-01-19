@@ -1,91 +1,153 @@
+# ai-generator-service/app/services/ai_service.py
+
+import json
 import logging
 from datetime import datetime
 from typing import Optional
-import requests
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.groq_client import generate_meal_plan
 from app.core.database import ai_logs
-from app.core.config import settings
-from app.core.kafka import send_message
 
 logger = logging.getLogger(__name__)
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-async def send_to_plan_service(user_id: str, plan: str) -> bool:
-    """Envía plan generado al servicio de planes con reintentos"""
-    try:
-        response = requests.post(
-            f"{settings.PLAN_MANAGEMENT_SERVICE_URL}/api/v1/plans/from-ai",
-            json={
-                "user_id": user_id,
-                "plan": plan
-            },
-            timeout=10
-        )
-        response.raise_for_status()
-        logger.info(f"✅ Plan enviado a plan-management-service para user {user_id}")
-        return True
-    except requests.exceptions.RequestException as e:
-        logger.error(f"❌ Error enviando plan: {e}")
-        raise
+def _safe_list(x):
+    if x is None:
+        return []
+    if isinstance(x, list):
+        return x
+    if isinstance(x, str) and x.strip() == "":
+        return []
+    return [str(x)]
 
 async def process_generation(data: dict) -> Optional[dict]:
-    """Procesa generación de plan de comida"""
     user_id = data.get("user_id")
     start_time = datetime.utcnow()
-    
+
     try:
-        # Validar datos de entrada
         if not user_id:
             raise ValueError("user_id es requerido")
-        
-        if not all(k in data for k in ["weight", "height", "goal"]):
-            raise ValueError("Datos incompletos: weight, height, goal son requeridos")
-        
-        logger.info(f"🔄 Procesando generación para user {user_id}")
-        
-        # Construir prompt
+
+        # ✅ Datos esperados (desde Plan Management)
+        gender = data.get("gender")
+        birth_date = data.get("birth_date")
+
+        weight = data.get("weight_kg")
+        height = data.get("height_cm")
+        goal = data.get("goal")
+        activity = data.get("activity_level")
+        diet_type = data.get("diet_type")
+        meals_per_day = data.get("meals_per_day")
+        caloric_goal = data.get("caloric_goal")
+        water_intake = data.get("water_intake")
+
+        preferences = _safe_list(data.get("preferences"))
+        allergies = _safe_list(data.get("allergies"))
+
+        if weight is None or height is None or not goal:
+            raise ValueError("Datos incompletos: weight_kg, height_cm, goal son requeridos")
+
+        if not meals_per_day:
+            raise ValueError("meals_per_day es requerido (nutrition form)")
+
+        # ✅ Prompt: SOLO JSON, sin markdown, sin repetición
         prompt = f"""
-        Create a personalized meal plan:
-        Weight: {data.get('weight')} kg
-        Height: {data.get('height')} cm
-        Goal: {data.get('goal')}
-        Preferences: {data.get('preferences', 'None')}
-        Restrictions: {data.get('restrictions', 'None')}
-        """
-        
-        # Generar con Groq
-        result = generate_meal_plan(prompt)
-        
-        if not result:
-            raise ValueError("Groq retornó respuesta vacía")
-        
-        # Guardar en MongoDB
-        log_entry = {
+Eres un nutricionista profesional.
+
+Devuelve SOLO un JSON válido (sin markdown, sin ```), siguiendo exactamente este esquema:
+
+{{
+  "title": "string",
+  "summary": "string",
+  "macros": {{
+    "calories": number,
+    "protein_g": number,
+    "carbs_g": number,
+    "fats_g": number
+  }},
+  "week": [
+    {{
+      "day": "Monday",
+      "meals": [
+        {{
+          "type": "Breakfast|Lunch|Dinner|Snack",
+          "name": "string",
+          "notes": "string"
+        }}
+      ]
+    }}
+  ],
+  "tips": ["string", "string"]
+}}
+
+Reglas IMPORTANTES:
+- Languaje: responde en English.
+- Devuelve SOLO JSON válido, sin markdown.
+- NO repitas contenido.
+- "week" SIEMPRE debe contener 7 días: Monday..Sunday en ese orden.
+- "meals" por día debe tener EXACTAMENTE {meals_per_day} items.
+- Respeta alergias estrictamente (nunca incluir esos alimentos).
+
+Reglas de MACROS:
+- Si "caloric_goal" existe y es > 0, entonces macros.calories DEBE ser EXACTAMENTE caloric_goal.
+- Si "caloric_goal" es null o 0, calcula macros.calories según: weight, height, gender, birth_date (edad), goal y activity_level.
+- Los gramos de proteína, carbs y fats deben ser coherentes con el objetivo:
+  - gain_muscle: proteína alta
+  - lose_weight: proteína alta, carbs moderados/bajos
+  - maintain: balanceado
+
+
+Datos del usuario:
+- Weight (kg): {weight}
+- Height (cm): {height}
+- Goal: {goal}
+- Activity level: {activity}
+
+Nutrición:
+- Meals per day: {meals_per_day}
+- Diet type: {diet_type}
+- Caloric goal: {caloric_goal}
+- Water intake (liters): {water_intake}
+- Preferences: {", ".join(preferences) if preferences else "None"}
+- Allergies (MUST AVOID): {", ".join(allergies) if allergies else "None"}
+"""
+
+        plan_obj = generate_meal_plan(prompt)  # debe retornar dict
+
+        macros = plan_obj.get("macros") or {}
+        calories = int(round(float(macros.get("calories", 0) or 0)))
+        protein  = int(round(float(macros.get("protein_g", 0) or 0)))
+        carbs    = int(round(float(macros.get("carbs_g", 0) or 0)))
+        fats     = int(round(float(macros.get("fats_g", 0) or 0)))
+
+
+        if not all([calories, protein, carbs, fats]):
+            raise ValueError("JSON missing macros fields (calories/protein_g/carbs_g/fats_g)")
+
+        description = json.dumps(plan_obj, ensure_ascii=False)
+
+        response_payload = {
+            "user_id": user_id,
+            "title": plan_obj.get("title") or "Plan Nutricional IA",
+            "description": description,
+            "calories": calories,
+            "protein": protein,
+            "carbs": carbs,
+            "fats": fats,
+        }
+
+        ai_logs.insert_one({
             "user_id": user_id,
             "input": data,
-            "output": result,
+            "output": plan_obj,
             "created_at": start_time,
             "processing_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
             "status": "success"
-        }
-        
-        ai_logs.insert_one(log_entry)
-        logger.info(f"✅ Plan generado y guardado para user {user_id}")
-        
-        # Enviar a plan-management-service
-        try:
-            await send_to_plan_service(user_id, result)
-        except Exception as e:
-            logger.warning(f"⚠️ Plan generado pero no se pudo enviar a plan-service: {e}")
-        
-        return log_entry
-        
+        })
+
+        return response_payload
+
     except Exception as e:
         logger.error(f"❌ Error en process_generation: {e}", exc_info=True)
-        
-        # Registrar error en MongoDB
         try:
             ai_logs.insert_one({
                 "user_id": user_id,
@@ -95,7 +157,6 @@ async def process_generation(data: dict) -> Optional[dict]:
                 "processing_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
                 "status": "error"
             })
-        except Exception as db_error:
-            logger.error(f"❌ Error guardando error en MongoDB: {db_error}")
-        
+        except Exception:
+            pass
         return None

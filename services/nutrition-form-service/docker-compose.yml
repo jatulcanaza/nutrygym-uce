@@ -5,7 +5,7 @@ services:
     build: .
     ports:
       - "${PORT}:${PORT}"
-    env_file: .env  # ← Carga variables desde .env
+    env_file: .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_HOST=${REDIS_HOST}
@@ -103,7 +103,7 @@ services:
 
 networks:
   nutrigym-network:
-    driver: bridge
+    external: true
 
 volumes:
   postgres_data:
