@@ -29,7 +29,7 @@ export default function About() {
 
           <div className="hero-metrics">
             <div className="metric">
-              <div className="metric-value">4</div>
+              <div className="metric-value">6</div>
               <div className="metric-label">Microservices</div>
             </div>
             <div className="metric">
@@ -161,6 +161,23 @@ export default function About() {
               Manages roles, permissions, and access control.
             </div>
           </div>
+
+          <div className="service-card">
+            <div className="service-badge">Plans</div>
+            <div className="service-title">plan-management-service</div>
+            <div className="service-text">
+                Creates, stores, versions, and manages nutrition plans (active, ended, canceled, history).
+            </div>
+            </div>
+
+            <div className="service-card">
+            <div className="service-badge">AI</div>
+            <div className="service-title">ai-generator-service</div>
+            <div className="service-text">
+                Generates structured weekly meal plans using AI based on profile and nutrition form data.
+            </div>
+            </div>
+
         </div>
       </section>
 
@@ -187,7 +204,7 @@ export default function About() {
 
           <article className="team-card">
             <img className="avatar" src="/team-2.png" alt="Team member" />
-            <div className="team-name">Team Member</div>
+            <div className="team-name">Juan Tulcanaza</div>
             <div className="team-role">Backend / Data</div>
             <p className="team-text">
               API design, validations, and data models for nutrition planning.
@@ -196,7 +213,7 @@ export default function About() {
 
           <article className="team-card">
             <img className="avatar" src="/team-3.png" alt="Team member" />
-            <div className="team-name">Team Member</div>
+            <div className="team-name">Juan Tulcanaza</div>
             <div className="team-role">AI / Integration</div>
             <p className="team-text">
               AI workflow integration and plan generation pipelines.
