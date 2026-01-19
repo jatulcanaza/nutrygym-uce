@@ -1,11 +1,18 @@
 :root {
   --primary: #80c522;
   --primary-dark: #6fae1d;
+
   --ink: #0f172a;
   --muted: #475569;
-  --bg: #f8fafc;
-  --border: #e2e8f0;
+
+  --bg: #f6f8fb;
+  --card: #ffffff;
+  --border: rgba(15, 23, 42, 0.10);
+
+  --shadow-sm: 0 10px 22px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 18px 40px rgba(15, 23, 42, 0.10);
 }
+
 
 /* ===== PAGE ===== */
 .nutrigym-page {
@@ -199,16 +206,18 @@
 /* ===== AI BOX ===== */
 .ai-box {
   margin-top: 14px;
-  border: 1px dashed rgba(128, 197, 34, 0.35);
-  background: rgba(128, 197, 34, 0.08);
-  padding: 14px 14px;
-  border-radius: 14px;
+  border: 1px solid rgba(128, 197, 34, 0.22);
+  background: linear-gradient(180deg, rgba(128, 197, 34, 0.10), rgba(255,255,255, 0.70));
+  padding: 16px;
+  border-radius: 18px;
 }
-
 .ai-title {
   font-weight: 800;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
   color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .ai-box p {
@@ -460,4 +469,177 @@
   .modal-grid {
     grid-template-columns: 1fr;
   }
+}
+
+
+.day-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.day-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(128, 197, 34, 0.35);
+}
+
+.day-card-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  background: linear-gradient(90deg, rgba(128, 197, 34, 0.10), rgba(255,255,255, 0.00));
+}
+
+.day-card-title {
+  font-weight: 900;
+  color: var(--ink);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.day-chip{
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(128, 197, 34, 0.28);
+  background: rgba(128, 197, 34, 0.10);
+  color: #365314;
+}
+
+
+.meal-item:last-child {
+  border-bottom: none;
+}
+
+.meal-item strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.plan-summary{
+  margin: 10px 0 12px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: rgba(255,255,255,0.85);
+  color: rgba(15, 23, 42, 0.80);
+  line-height: 1.55;
+}
+
+.meal-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  opacity: 0.95;
+}
+
+
+.tips-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+
+@media (max-width: 980px) {
+  .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .week-grid { grid-template-columns: 1fr; }
+}
+.meals {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.meal-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px;
+  padding: 10px 10px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.02);
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+.meal-row:hover{
+  background: rgba(128, 197, 34, 0.08);
+  border-color: rgba(128, 197, 34, 0.25);
+}
+
+.pill{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255,255,255,0.8);
+  color: rgba(15, 23, 42, 0.75);
+  width: fit-content;
+}
+
+/* Colores por tipo (dinámico) */
+.pill-breakfast { border-color: rgba(59, 130, 246, 0.25); background: rgba(59, 130, 246, 0.10); color: #1e3a8a; }
+.pill-lunch     { border-color: rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.10); color: #065f46; }
+.pill-dinner    { border-color: rgba(168, 85, 247, 0.25); background: rgba(168, 85, 247, 0.10); color: #5b21b6; }
+.pill-snack     { border-color: rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.10); color: #92400e; }
+
+.meal-name {
+  font-weight: 900;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.25;
+}
+
+.meal-notes {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.tips-box{
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.tips-title{
+  font-weight: 900;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.tips-box ul{
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+.tips-box li{
+  margin: 6px 0;
 }

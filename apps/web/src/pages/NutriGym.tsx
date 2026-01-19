@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import "./NutriGym.css";
 import { getMyProfile, createProfile, updateMyProfile } from "../api/profile.api";
@@ -7,8 +7,15 @@ import {
   createNutritionForm,
   updateMyNutritionForm,
 } from "../api/nutritionForm.api";
-
-
+import {
+  getCurrentPlan,
+  regenerateCurrentPlan,
+  generatePlan,
+  getMyPlans,
+  endPlan,
+  cancelPlan,
+  type MealPlan
+} from "../api/plan.api";
 
 
 // Recomendado: coloca la imagen en public y usa /nutrition-hero.png
@@ -45,27 +52,36 @@ type NutritionForm = {
 };
 
 
-type Plan = {
-  goalLabel: string;
-  week: Record<string, [string, string, string]>;
-  conclusion: string;
-  status: "Active" | "Canceled";
-  createdAt: string; // locale
+type Plan = MealPlan;
+
+type PlanJSON = {
+  title: string;
+  summary?: string;
+  macros: { calories: number; protein_g: number; carbs_g: number; fats_g: number };
+  week: { day: string; meals: { type: string; name: string; notes?: string }[] }[];
+  tips?: string[];
 };
 
 export default function NutriGym() {
- const { user, token, isAuthenticated, logout } = useAuth();
+  const { user, token, isAuthenticated, logout } = useAuth();
 
 
   // ====== UI state
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
+  const [plans, setPlans] = useState<MealPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const generatingRef = useRef(false);
+  const [editingPlan, setEditingPlan] = useState(false);
+
+
 
   // simula "perfil existe"; luego lo reemplazas por GET /profiles/me
-const [hasProfile, setHasProfile] = useState<boolean | null>(null);
-const [loadingProfile, setLoadingProfile] = useState(true);
-const [hasNutritionForm, setHasNutritionForm] = useState<boolean | null>(null);
-const [loadingNutritionForm, setLoadingNutritionForm] = useState(true);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [hasNutritionForm, setHasNutritionForm] = useState<boolean | null>(null);
+  const [loadingNutritionForm, setLoadingNutritionForm] = useState(true);
 
 
   // ====== Forms
@@ -80,14 +96,14 @@ const [loadingNutritionForm, setLoadingNutritionForm] = useState(true);
     activity_level: "",
   });
 
-const [nutritionForm, setNutritionForm] = useState<NutritionForm>({
-  meals_per_day: "",
-  diet_type: "",
-  allergies: "",
-  preferences: "",
-  caloric_goal: "",
-  water_intake: "",
-});
+  const [nutritionForm, setNutritionForm] = useState<NutritionForm>({
+    meals_per_day: "",
+    diet_type: "",
+    allergies: "",
+    preferences: "",
+    caloric_goal: "",
+    water_intake: "",
+  });
 
   // ====== Errors
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
@@ -95,82 +111,116 @@ const [nutritionForm, setNutritionForm] = useState<NutritionForm>({
 
   // ====== Plan state
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [history, setHistory] = useState<Array<Pick<Plan, "createdAt" | "goalLabel" | "status">>>([]);
+  const planJson: PlanJSON | null = useMemo(() => {
+  if (!plan?.description) return null;
+  try {
+    return JSON.parse(plan.description);
+  } catch {
+    return null;
+  }
+}, [plan?.description]);
+
 
   // ====== Scroll lock cuando modal abierto
   useEffect(() => {
-  const open = showProfileModal || showNutritionModal;
-  document.body.style.overflow = open ? "hidden" : "auto";
-  return () => {
-    document.body.style.overflow = "auto";
-  };
-}, [showProfileModal, showNutritionModal]);
+    const open = showProfileModal || showNutritionModal;
+    document.body.style.overflow = open ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [showProfileModal, showNutritionModal]);
   // ====== Chequea si el perfil existe al montar
-useEffect(() => {
-  if (!token) return;
+  useEffect(() => {
+    if (!token) return;
 
-  const checkProfile = async () => {
-    try {
-      const profile = await getMyProfile(token);
+    const checkProfile = async () => {
+      try {
+        const profile = await getMyProfile(token);
 
-      // ✅ Perfil existe
-      setHasProfile(true);
+        // ✅ Perfil existe
+        setHasProfile(true);
 
-      // ✅ Precargar el formulario con lo que viene del backend
-      setProfileForm({
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        birth_date: profile.birth_date,
-        gender: profile.gender as any,
-        height_cm: String(profile.height_cm),
-        weight_kg: String(profile.weight_kg),
-        goal: profile.goal as any,
-        activity_level: profile.activity_level as any,
-      });
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
-        setHasProfile(false); // no existe
-      } else {
-        console.error("Error checking profile", err);
+        // ✅ Precargar el formulario con lo que viene del backend
+        setProfileForm({
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          birth_date: profile.birth_date,
+          gender: profile.gender as any,
+          height_cm: String(profile.height_cm),
+          weight_kg: String(profile.weight_kg),
+          goal: profile.goal as any,
+          activity_level: profile.activity_level as any,
+        });
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          setHasProfile(false); // no existe
+        } else {
+          console.error("Error checking profile", err);
+        }
+      } finally {
+        setLoadingProfile(false);
       }
-    } finally {
-      setLoadingProfile(false);
-    }
-  };
+    };
 
-  checkProfile();
-}, [token]);
+    checkProfile();
+  }, [token]);
 
-useEffect(() => {
-  if (!token) return;
+  useEffect(() => {
+    if (!token) return;
 
-  const checkNutritionForm = async () => {
-    try {
-      const nf = await getMyNutritionForm(token);
+    const checkNutritionForm = async () => {
+      try {
+        const nf = await getMyNutritionForm(token);
 
-      setHasNutritionForm(true);
+        setHasNutritionForm(true);
 
-      setNutritionForm({
-        meals_per_day: String(nf.meals_per_day) as any,
-        diet_type: nf.diet_type as any,
-        allergies: (nf.allergies ?? []).join(", "),
-        preferences: (nf.preferences ?? []).join(", "),
-        caloric_goal: String(nf.caloric_goal),
-        water_intake: String(nf.water_intake),
-      });
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
-        setHasNutritionForm(false);
-      } else {
-        console.error("Error checking nutrition form", err);
+        setNutritionForm({
+          meals_per_day: String(nf.meals_per_day) as any,
+          diet_type: nf.diet_type as any,
+          allergies: (nf.allergies ?? []).join(", "),
+          preferences: (nf.preferences ?? []).join(", "),
+          caloric_goal: String(nf.caloric_goal),
+          water_intake: String(nf.water_intake),
+        });
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          setHasNutritionForm(false);
+        } else {
+          console.error("Error checking nutrition form", err);
+        }
+      } finally {
+        setLoadingNutritionForm(false);
       }
-    } finally {
-      setLoadingNutritionForm(false);
-    }
-  };
+    };
 
-  checkNutritionForm();
-}, [token]);
+    checkNutritionForm();
+  }, [token]);
+  useEffect(() => {
+    if (!token) return;
+
+    const loadCurrentPlan = async () => {
+      try {
+        const p = await getCurrentPlan(token);
+        setPlan(p);
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          setPlan(null); // ✅ IMPORTANTE: limpia estado local
+        } else {
+          console.error("Error loading current plan", err);
+        }
+      }
+    };
+
+    loadCurrentPlan();
+  }, [token]);
+
+
+  useEffect(() => {
+    if (!token) return;
+    refreshPlans();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
 
   // ====== Helpers
   const username = useMemo(() => {
@@ -178,15 +228,38 @@ useEffect(() => {
     return email.includes("@") ? email.split("@")[0] : "user";
   }, [user?.email]);
 
-const openFlow = () => {
-  if (loadingProfile || loadingNutritionForm) return;
+  const openFlow = () => {
+    if (loadingProfile || loadingNutritionForm) return;
 
-  if (!hasProfile) {
-    setShowProfileModal(true);
-  } else {
-    setShowNutritionModal(true);
-  }
-};
+    // ✅ Si ya hay plan activo, no abras modales
+    if (plan) return;
+
+    if (!hasProfile) setShowProfileModal(true);
+    else setShowNutritionModal(true);
+  };
+
+  const refreshPlans = async () => {
+    if (!token) return;
+
+    try {
+      setLoadingPlans(true);
+      const list = await getMyPlans(token);
+
+      // Ordena por fecha (más nuevo primero)
+      const sorted = [...list].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setPlans(sorted);
+
+      // ❌ NO vuelvas a setear `plan` desde el historial.
+      // La única fuente de verdad del plan activo es GET /plans/current
+    } catch (err: any) {
+      console.error("Error loading plans", err);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
 
 
   // ====== Validaciones
@@ -213,190 +286,199 @@ const openFlow = () => {
     return Object.keys(e).length === 0;
   };
 
-const validateNutrition = (data: NutritionForm) => {
-  const e: Record<string, string> = {};
+  const validateNutrition = (data: NutritionForm) => {
+    const e: Record<string, string> = {};
 
-  if (!data.diet_type) e.diet_type = "Select diet type.";
-  if (!data.meals_per_day) e.meals_per_day = "Select meals per day.";
+    if (!data.diet_type) e.diet_type = "Select diet type.";
+    if (!data.meals_per_day) e.meals_per_day = "Select meals per day.";
 
-  // preferences lo hacemos requerido (como tenías)
-  if (!data.preferences.trim()) e.preferences = "Preferences are required.";
+    // preferences lo hacemos requerido (como tenías)
+    if (!data.preferences.trim()) e.preferences = "Preferences are required.";
 
-  // caloric_goal y water_intake requeridos
-  const cg = Number(data.caloric_goal);
-  if (!data.caloric_goal.trim() || Number.isNaN(cg) || cg <= 0) {
-    e.caloric_goal = "Caloric goal must be a positive number.";
-  }
+    // caloric_goal y water_intake requeridos
+    const cg = Number(data.caloric_goal);
+    if (!data.caloric_goal.trim() || Number.isNaN(cg) || cg <= 0) {
+      e.caloric_goal = "Caloric goal must be a positive number.";
+    }
 
-  const wi = Number(data.water_intake);
-  if (!data.water_intake.trim() || Number.isNaN(wi) || wi <= 0) {
-    e.water_intake = "Water intake must be a positive number.";
-  }
+    const wi = Number(data.water_intake);
+    if (!data.water_intake.trim() || Number.isNaN(wi) || wi <= 0) {
+      e.water_intake = "Water intake must be a positive number.";
+    }
 
-  setNutritionErrors(e);
-  return Object.keys(e).length === 0;
-};
+    setNutritionErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
 
   // ====== Acciones de perfil
-const handleProfileNext = async () => {
-  if (!validateProfile(profileForm)) return;
-  if (!token) return;
+  const handleProfileNext = async () => {
+    if (!validateProfile(profileForm)) return;
+    if (!token) return;
 
-  const payload = {
-    first_name: profileForm.first_name,
-    last_name: profileForm.last_name,
-    birth_date: profileForm.birth_date,
-    gender: profileForm.gender,
-    height_cm: Number(profileForm.height_cm),
-    weight_kg: Number(profileForm.weight_kg),
-    goal: profileForm.goal,
-    activity_level: profileForm.activity_level,
-  };
+    const payload = {
+      first_name: profileForm.first_name,
+      last_name: profileForm.last_name,
+      birth_date: profileForm.birth_date,
+      gender: profileForm.gender,
+      height_cm: Number(profileForm.height_cm),
+      weight_kg: Number(profileForm.weight_kg),
+      goal: profileForm.goal,
+      activity_level: profileForm.activity_level,
+    };
 
-  try {
-    // ✅ Si NO existe perfil -> POST
-    if (!hasProfile) {
-      await createProfile(token, payload);
-      setHasProfile(true);
-    } else {
-      // ✅ Si YA existe -> PUT (update)
-      await updateMyProfile(token, payload);
-    }
+    try {
+      // ✅ Si NO existe perfil -> POST
+      if (!hasProfile) {
+        await createProfile(token, payload);
+        setHasProfile(true);
+      } else {
+        // ✅ Si YA existe -> PUT (update)
+        await updateMyProfile(token, payload);
+      }
 
-    setShowProfileModal(false);
-    setShowNutritionModal(true);
-  } catch (err: any) {
-    // Si backend responde "ya existe" al intentar crear, abrimos nutrition
-    if (err?.response?.status === 409) {
-      setHasProfile(true);
       setShowProfileModal(false);
       setShowNutritionModal(true);
-      return;
-    }
+    } catch (err: any) {
+      // Si backend responde "ya existe" al intentar crear, abrimos nutrition
+      if (err?.response?.status === 409) {
+        setHasProfile(true);
+        setShowProfileModal(false);
+        setShowNutritionModal(true);
+        return;
+      }
 
-    console.error("Error saving profile", err);
-    alert("Failed to save profile. Please try again.");
-  }
-};
+      console.error("Error saving profile", err);
+      alert("Failed to save profile. Please try again.");
+    }
+  };
 
 
 
   // ====== Acciones de nutrición/plan
- const handleGeneratePlan = async () => {
-  if (!validateNutrition(nutritionForm)) return;
-  if (!token) return;
+  const handleGeneratePlan = async () => {
+    if (generatingRef.current) return; // ✅ lock real
+    if (!validateNutrition(nutritionForm)) return;
+    if (!token) return;
 
-  const parseList = (s: string) =>
-    s
-      .split(",")
-      .map((x) => x.trim())
-      .filter(Boolean);
+    generatingRef.current = true;
+    setGenerating(true);
 
-  const payload = {
-    meals_per_day: Number(nutritionForm.meals_per_day),
-    diet_type: nutritionForm.diet_type,
-    allergies: parseList(nutritionForm.allergies),
-    preferences: parseList(nutritionForm.preferences),
-    caloric_goal: Number(nutritionForm.caloric_goal),
-    water_intake: Number(nutritionForm.water_intake),
-  };
 
-  try {
-    if (!hasNutritionForm) {
-      await createNutritionForm(token, payload);
-      setHasNutritionForm(true);
-    } else {
-      await updateMyNutritionForm(token, payload);
+    const parseList = (s: string) =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean);
+
+    const payload = {
+      meals_per_day: Number(nutritionForm.meals_per_day),
+      diet_type: nutritionForm.diet_type,
+      allergies: parseList(nutritionForm.allergies),
+      preferences: parseList(nutritionForm.preferences),
+      caloric_goal: Number(nutritionForm.caloric_goal),
+      water_intake: Number(nutritionForm.water_intake),
+    };
+
+    try {
+      // 1️⃣ Guarda / actualiza nutrition form
+      if (!hasNutritionForm) {
+        await createNutritionForm(token, payload);
+        setHasNutritionForm(true);
+      } else {
+        await updateMyNutritionForm(token, payload);
+      }
+
+      // 2️⃣ Genera el plan REAL
+      let newPlan: MealPlan;
+
+      if (plan && editingPlan) {
+        // Editar = regenerar plan actual
+        newPlan = await regenerateCurrentPlan(token);
+      } else {
+        // Nuevo = generar plan
+        newPlan = await generatePlan(token);
+      }
+
+      setPlan(newPlan);
+      setEditingPlan(false);
+
+
+      setShowNutritionModal(false);
+      await refreshPlans();
+
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        alert("You already have an active plan. End or cancel it first.");
+        return;
+      }
+      console.error("Error generating plan", err);
+      alert("Failed to generate plan. Please try again.");
+    } finally {
+      setGenerating(false);
+      generatingRef.current = false;
     }
-  } catch (err: any) {
-    // si se cruzó el estado y ya existía, intenta update
-    if (err?.response?.status === 409) {
-      await updateMyNutritionForm(token, payload);
-      setHasNutritionForm(true);
-    } else {
-      console.error("Error saving nutrition form", err);
-      alert("Failed to save nutrition form. Please try again.");
-      return;
-    }
-  }
 
-  // Aquí luego conectas a IA (por ahora fake)
-  const generated: Plan = {
-    goalLabel:
-      profileForm.goal === "lose_weight"
-        ? "Lose weight"
-        : profileForm.goal === "gain_muscle"
-        ? "Gain muscle"
-        : "Maintain",
-    week: {
-      Monday: ["Oatmeal", "Chicken salad", "Fruit"],
-      Tuesday: ["Eggs", "Rice & fish", "Yogurt"],
-      Wednesday: ["Smoothie", "Pasta", "Nuts"],
-      Thursday: ["Toast", "Chicken & veggies", "Fruit"],
-      Friday: ["Oats", "Fish & rice", "Yogurt"],
-      Saturday: ["Eggs", "Salad", "Fruit"],
-      Sunday: ["Free choice", "Balanced meal", "Light snack"],
-    },
-    conclusion:
-      "This plan is personalized based on your profile and habits. Follow it consistently and adjust portions according to your progress.",
-    status: "Active",
-    createdAt: new Date().toLocaleDateString(),
+
   };
-
-  setPlan(generated);
-  setHistory((prev) => [
-    { createdAt: generated.createdAt, goalLabel: generated.goalLabel, status: generated.status },
-    ...prev,
-  ]);
-  setShowNutritionModal(false);
-};
-
-const buildFakePlan = (): Plan => {
-  return {
-    goalLabel:
-      profileForm.goal === "lose_weight"
-        ? "Lose weight"
-        : profileForm.goal === "gain_muscle"
-        ? "Gain muscle"
-        : "Maintain",
-    week: {
-      Monday: ["Oatmeal", "Chicken salad", "Fruit"],
-      Tuesday: ["Eggs", "Rice & fish", "Yogurt"],
-      Wednesday: ["Smoothie", "Pasta", "Nuts"],
-      Thursday: ["Toast", "Chicken & veggies", "Fruit"],
-      Friday: ["Oats", "Fish & rice", "Yogurt"],
-      Saturday: ["Eggs", "Salad", "Fruit"],
-      Sunday: ["Free choice", "Balanced meal", "Light snack"],
-    },
-    conclusion:
-      "This plan is personalized based on your profile and habits. Follow it consistently and adjust portions according to your progress.",
-    status: "Active",
-    createdAt: new Date().toLocaleDateString(),
-  };
-};
-
 
 
   const handleEditPlan = () => {
-    // Reabre SOLO nutrition form (con datos actuales)
+    setEditingPlan(true);
     setShowNutritionModal(true);
   };
 
-  const handleCancelPlan = () => {
-    if (!plan) return;
-    const canceled = { ...plan, status: "Canceled" as const };
 
-    setPlan(null); // el plan activo desaparece
-    // actualiza historial con cancelado
-    setHistory((prev) => {
-      const updated = [...prev];
-      const idx = updated.findIndex((x) => x.createdAt === canceled.createdAt && x.goalLabel === canceled.goalLabel);
-      if (idx >= 0) updated[idx] = { ...updated[idx], status: "Canceled" };
-      else updated.unshift({ createdAt: canceled.createdAt, goalLabel: canceled.goalLabel, status: "Canceled" });
-      return updated;
-    });
+  const handleEndPlan = async () => {
+    if (!token || !plan) return;
+
+    const ok = window.confirm("Do you want to end this plan?");
+    if (!ok) return;
+
+    try {
+      await endPlan(token);
+
+      setPlan(null);
+      await refreshPlans();
+      try {
+        await getCurrentPlan(token);
+      } catch (e: any) {
+        // si es 404, perfecto, no hay plan activo
+      }
+
+    } catch (err: any) {
+      console.error("Error ending plan", err);
+      alert("Failed to end plan. Please try again.");
+    }
   };
+
+
+
+  const handleCancelPlan = async () => {
+    if (!token || !plan) return;
+
+    const ok = window.confirm("Do you want to cancel this plan?");
+    if (!ok) return;
+
+    try {
+      await cancelPlan(token);
+
+      setPlan(null);
+      await refreshPlans();
+      try {
+        await getCurrentPlan(token);
+      } catch (e: any) {
+        // si es 404, perfecto, no hay plan activo
+      }
+
+    } catch (err: any) {
+      console.error("Error canceling plan", err);
+      alert("Failed to cancel plan. Please try again.");
+    }
+  };
+
+
+
 
   // ====== UX: cerrar modal con Escape + click fuera
   const onOverlayClick = (close: () => void) => (e: React.MouseEvent) => {
@@ -434,7 +516,7 @@ const buildFakePlan = (): Plan => {
               className="btn btn-primary"
               onClick={openFlow}
               disabled={loadingProfile || loadingNutritionForm}>
-               {(loadingProfile || loadingNutritionForm) ? "Loading..." : "Get my nutrition plan"}
+              {(loadingProfile || loadingNutritionForm) ? "Loading..." : "Get my nutrition plan"}
 
             </button>
 
@@ -484,60 +566,102 @@ const buildFakePlan = (): Plan => {
         <div className="panel">
           <div className="panel-header">
             <div>
-              <h2>Your weekly plan</h2>
-              <p className="muted">Goal: {plan.goalLabel} • Status: {plan.status} • Created: {plan.createdAt}</p>
+              <h2>{plan.title}</h2>
+              <p className="muted">
+                Status: {plan.status} • Version: {plan.version} • Created:{" "}
+                {new Date(plan.created_at).toLocaleString()}
+              </p>
             </div>
 
             <div className="panel-actions">
               <button className="btn btn-primary" type="button" onClick={handleEditPlan}>
-                Edit plan
+                Edit nutrition form
               </button>
-              <button className="btn btn-danger" type="button" onClick={handleCancelPlan}>
+              <button className="btn btn-danger" type="button" onClick={handleEndPlan}>
+                End plan
+              </button>
+              <button className="btn btn-ghost" type="button" onClick={handleCancelPlan}>
                 Cancel plan
               </button>
             </div>
           </div>
 
-          <div className="table-wrap">
-            <table className="plan-table">
-              <thead>
-                <tr>
-                  <th>Day</th>
-                  <th>Breakfast</th>
-                  <th>Lunch</th>
-                  <th>Snack</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(plan.week).map(([day, meals]) => (
-                  <tr key={day}>
-                    <td className="day">{day}</td>
-                    <td>{meals[0]}</td>
-                    <td>{meals[1]}</td>
-                    <td>{meals[2]}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* <div className="ai-box">
+            <div className="ai-title">Macros</div>
+            <p>
+              Calories: {planJson?.macros?.calories ?? plan.calories} •
+              Protein: {planJson?.macros?.protein_g ?? plan.protein}g •
+              Carbs: {planJson?.macros?.carbs_g ?? plan.carbs}g •
+              Fats: {planJson?.macros?.fats_g ?? plan.fats}g
+            </p>
+          </div>*/}
+
+         <div className="ai-box">
+  <div className="ai-title">Plan details</div>
+
+  {planJson ? (
+    <>
+      {planJson.summary && <p className="plan-summary">{planJson.summary}</p>}
+
+      <div className="week-grid">
+        {planJson.week.map((d) => (
+          <div key={d.day} className="day-card">
+            <div className="day-card-head">
+            <div className="day-card-title">{d.day}</div>
+            <span className="day-chip">{d.meals.length} meals</span>
           </div>
 
-          <div className="ai-box">
-            <div className="ai-title">AI conclusion</div>
-            <p>{plan.conclusion}</p>
+
+            <div className="meals">
+              {d.meals.map((m, idx) => (
+                <div key={idx} className="meal-row">
+                  <span className={`meal-type pill pill-${m.type.toLowerCase()}`}>
+                      {m.type}
+                    </span>
+
+                  <div className="meal-main">
+                    <div className="meal-name">{m.name}</div>
+                    {m.notes && <div className="meal-notes">{m.notes}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+        ))}
+      </div>
+
+      {planJson.tips?.length ? (
+        <div className="tips-box">
+          <div className="tips-title">Tips</div>
+          <ul>
+            {planJson.tips.map((t, i) => <li key={i}>{t}</li>)}
+          </ul>
+        </div>
+      ) : null}
+    </>
+  ) : (
+    <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{plan.description}</pre>
+  )}
+</div>
+
+
+
         </div>
       )}
 
-      {/* HISTORY */}
+
+      {/* PLAN HISTORY */}
       <div className="panel">
         <div className="panel-header">
           <div>
             <h2>Plan history</h2>
-            <p className="muted">All generated plans are recorded with their status.</p>
+            <p className="muted">All your generated plans (active and archived).</p>
           </div>
         </div>
 
-        {history.length === 0 ? (
+        {loadingPlans ? (
+          <div className="empty">Loading plans...</div>
+        ) : plans.length === 0 ? (
           <div className="empty">
             No plans yet. Click “Get my nutrition plan” to generate your first plan.
           </div>
@@ -547,20 +671,22 @@ const buildFakePlan = (): Plan => {
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Goal</th>
+                  <th>Title</th>
                   <th>Status</th>
+                  <th>Current</th>
                 </tr>
               </thead>
               <tbody>
-                {history.map((h, i) => (
-                  <tr key={i}>
-                    <td>{h.createdAt}</td>
-                    <td>{h.goalLabel}</td>
+                {plans.map((p) => (
+                  <tr key={p.id}>
+                    <td>{new Date(p.created_at).toLocaleString()}</td>
+                    <td>{p.title}</td>
                     <td>
-                      <span className={`badge ${h.status === "Active" ? "badge-active" : "badge-canceled"}`}>
-                        {h.status}
+                      <span className={`badge ${p.status === "active" ? "badge-active" : "badge-canceled"}`}>
+                        {p.status}
                       </span>
                     </td>
+                    <td>{p.is_current ? "Yes" : "No"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -568,6 +694,8 @@ const buildFakePlan = (): Plan => {
           </div>
         )}
       </div>
+
+
 
       {/* PROFILE MODAL */}
       {showProfileModal && (
@@ -578,9 +706,17 @@ const buildFakePlan = (): Plan => {
                 <h3>Create user profile</h3>
                 <p className="modal-subtitle">This is required before generating your nutrition plan.</p>
               </div>
-              <button className="modal-close" type="button" onClick={() => setShowProfileModal(false)} aria-label="Close">
+              <button
+                className="modal-close"
+                type="button"
+                onClick={() => {
+                  setShowProfileModal(false);
+                }}
+                aria-label="Close"
+              >
                 ×
               </button>
+
             </div>
 
             <div className="modal-body">
@@ -682,9 +818,17 @@ const buildFakePlan = (): Plan => {
             </div>
 
             <div className="modal-footer">
-              <button className="btn btn-ghost" type="button" onClick={() => setShowProfileModal(false)}>
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={() => {
+                  setShowProfileModal(false);
+                }}
+              >
                 Cancel
               </button>
+
+
               <button className="btn btn-primary" type="button" onClick={handleProfileNext}>
                 Continue
               </button>
@@ -702,113 +846,128 @@ const buildFakePlan = (): Plan => {
                 <h3>Nutrition form</h3>
                 <p className="modal-subtitle">Review your profile if you need. Then generate your weekly plan.</p>
               </div>
-              <button className="modal-close" type="button" onClick={() => setShowNutritionModal(false)} aria-label="Close">
+              <button
+                className="modal-close"
+                type="button"
+                onClick={() => {
+                  setShowNutritionModal(false);
+                }}
+                aria-label="Close"
+              >
                 ×
               </button>
+
             </div>
 
             <div className="modal-body">
-                <div className="modal-grid">
-                  <div className="field full">
-                    <label>Food preferences</label>
-                    <input
-                      value={nutritionForm.preferences}
-                      onChange={(e) =>
-                        setNutritionForm({ ...nutritionForm, preferences: e.target.value })
-                      }
-                      placeholder="e.g. vegetarian, no seafood"
-                    />
-                    {nutritionErrors.preferences && (
-                      <small className="error">{nutritionErrors.preferences}</small>
-                    )}
-                  </div>
-
-                  <div className="field full">
-                    <label>Allergies (optional)</label>
-                    <input
-                      value={nutritionForm.allergies}
-                      onChange={(e) =>
-                        setNutritionForm({ ...nutritionForm, allergies: e.target.value })
-                      }
-                      placeholder="e.g. lactose, peanuts"
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label>Meals per day</label>
-                    <select
-                      value={nutritionForm.meals_per_day}
-                      onChange={(e) =>
-                        setNutritionForm({ ...nutritionForm, meals_per_day: e.target.value as any })
-                      }
-                    >
-                      <option value="" disabled>Select</option>
-                      <option value="3">3</option>
-                      <option value="4">4</option>
-                      <option value="5">5</option>
-                    </select>
-                    {nutritionErrors.meals_per_day && (
-                      <small className="error">{nutritionErrors.meals_per_day}</small>
-                    )}
-                  </div>
-
-                  <div className="field">
-                    <label>Diet type</label>
-                    <select
-                      value={nutritionForm.diet_type}
-                      onChange={(e) =>
-                        setNutritionForm({ ...nutritionForm, diet_type: e.target.value as any })
-                      }
-                    >
-                      <option value="" disabled>Select</option>
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                    {nutritionErrors.diet_type && (
-                      <small className="error">{nutritionErrors.diet_type}</small>
-                    )}
-                  </div>
-
-                  <div className="field">
-                    <label>Caloric goal</label>
-                    <input
-                      type="number"
-                      value={nutritionForm.caloric_goal}
-                      onChange={(e) =>
-                        setNutritionForm({ ...nutritionForm, caloric_goal: e.target.value })
-                      }
-                      placeholder="e.g. 2200"
-                    />
-                    {nutritionErrors.caloric_goal && (
-                      <small className="error">{nutritionErrors.caloric_goal}</small>
-                    )}
-                  </div>
-
-                  <div className="field">
-                    <label>Water intake (liters)</label>
-                    <input
-                      type="number"
-                      value={nutritionForm.water_intake}
-                      onChange={(e) =>
-                        setNutritionForm({ ...nutritionForm, water_intake: e.target.value })
-                      }
-                      placeholder="e.g. 2.5"
-                    />
-                    {nutritionErrors.water_intake && (
-                      <small className="error">{nutritionErrors.water_intake}</small>
-                    )}
-                  </div>
+              <div className="modal-grid">
+                <div className="field full">
+                  <label>Food preferences</label>
+                  <input
+                    value={nutritionForm.preferences}
+                    onChange={(e) =>
+                      setNutritionForm({ ...nutritionForm, preferences: e.target.value })
+                    }
+                    placeholder="e.g. vegetarian, no seafood"
+                  />
+                  {nutritionErrors.preferences && (
+                    <small className="error">{nutritionErrors.preferences}</small>
+                  )}
                 </div>
 
-                <p className="modal-hint">
-                  Tip: You can go back to edit your profile if something is incorrect.
-                </p>
+                <div className="field full">
+                  <label>Allergies (optional)</label>
+                  <input
+                    value={nutritionForm.allergies}
+                    onChange={(e) =>
+                      setNutritionForm({ ...nutritionForm, allergies: e.target.value })
+                    }
+                    placeholder="e.g. lactose, peanuts"
+                  />
+                </div>
+
+                <div className="field">
+                  <label>Meals per day</label>
+                  <select
+                    value={nutritionForm.meals_per_day}
+                    onChange={(e) =>
+                      setNutritionForm({ ...nutritionForm, meals_per_day: e.target.value as any })
+                    }
+                  >
+                    <option value="" disabled>Select</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                  {nutritionErrors.meals_per_day && (
+                    <small className="error">{nutritionErrors.meals_per_day}</small>
+                  )}
+                </div>
+
+                <div className="field">
+                  <label>Diet type</label>
+                  <select
+                    value={nutritionForm.diet_type}
+                    onChange={(e) =>
+                      setNutritionForm({ ...nutritionForm, diet_type: e.target.value as any })
+                    }
+                  >
+                    <option value="" disabled>Select</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                  {nutritionErrors.diet_type && (
+                    <small className="error">{nutritionErrors.diet_type}</small>
+                  )}
+                </div>
+
+                <div className="field">
+                  <label>Caloric goal</label>
+                  <input
+                    type="number"
+                    value={nutritionForm.caloric_goal}
+                    onChange={(e) =>
+                      setNutritionForm({ ...nutritionForm, caloric_goal: e.target.value })
+                    }
+                    placeholder="e.g. 2200"
+                  />
+                  {nutritionErrors.caloric_goal && (
+                    <small className="error">{nutritionErrors.caloric_goal}</small>
+                  )}
+                </div>
+
+                <div className="field">
+                  <label>Water intake (liters)</label>
+                  <input
+                    type="number"
+                    value={nutritionForm.water_intake}
+                    onChange={(e) =>
+                      setNutritionForm({ ...nutritionForm, water_intake: e.target.value })
+                    }
+                    placeholder="e.g. 2.5"
+                  />
+                  {nutritionErrors.water_intake && (
+                    <small className="error">{nutritionErrors.water_intake}</small>
+                  )}
+                </div>
               </div>
+
+              <p className="modal-hint">
+                Tip: You can go back to edit your profile if something is incorrect.
+              </p>
+            </div>
 
 
             <div className="modal-footer">
-              <button className="btn btn-ghost" type="button" onClick={() => setShowNutritionModal(false)}>
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={() => {
+                  setShowNutritionModal(false);
+                  setEditingPlan(false);
+                }}
+              >
                 Cancel
               </button>
               <button
@@ -816,14 +975,24 @@ const buildFakePlan = (): Plan => {
                 type="button"
                 onClick={() => {
                   setShowNutritionModal(false);
+                  setEditingPlan(false);
                   setShowProfileModal(true);
                 }}
+
               >
                 Back to profile
               </button>
-              <button className="btn btn-primary" type="button" onClick={handleGeneratePlan}>
-                Generate plan
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={handleGeneratePlan}
+                disabled={generating}
+              >
+                {generating ? "Generating..." : editingPlan ? "Regenerate plan" : "Generate plan"}
               </button>
+
+
+
             </div>
           </div>
         </div>
