@@ -5,3 +5,6 @@ output "instance_id" {
 output "public_ip" {
   value = aws_eip.this.public_ip
 }
+output "bastion_sg_id" {
+  value = aws_security_group.bastion.id
+}

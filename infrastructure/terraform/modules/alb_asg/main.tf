@@ -14,17 +14,17 @@ resource "aws_lb" "this" {
 /* Target Group */
 resource "aws_lb_target_group" "this" {
   name     = "${var.project_name}-${var.environment}-tg"
-  port     = 3000
+  port     = 80
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/health"
+    path                = "/"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    matcher             = "200"
+    matcher             = "200-399"
   }
 }
 
@@ -46,23 +46,19 @@ resource "aws_launch_template" "this" {
   image_id      = var.ami_id
   instance_type = var.instance_type
 
+  key_name = var.key_name   # <--- ESTA LINEA ES LA CLAVE
+
   vpc_security_group_ids = [var.microservices_sg_id]
 
   user_data = base64encode(<<EOF
 #!/bin/bash
 yum update -y
-
-# Docker
 amazon-linux-extras install docker -y
 systemctl start docker
 systemctl enable docker
 usermod -aG docker ec2-user
-
-# Docker Compose
-curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) \
--o /usr/local/bin/docker-compose
+curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
-
 echo "Docker OK" > /home/ec2-user/docker_ready.txt
 EOF
   )

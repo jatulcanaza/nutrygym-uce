@@ -58,3 +58,7 @@ variable "ami_id" {
   description = "AMI para las instancias EC2"
   type        = string
 }
+variable "key_name" {
+  description = "Key pair name for SSH access to ASG instances"
+  type        = string
+}
