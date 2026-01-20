@@ -1,0 +1,37 @@
+services:
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    environment:
+      # En runtime, Vite ya no lee .env (porque está compilado).
+      # Por eso: para producción real conviene gateway o build args.
+      # Para simplicidad, usa gateway o fija URLs en build.
+      - NGINX_PORT=80
+    depends_on:
+      - auth-service
+      - user-profile-service
+      - nutrition-form-service
+      - authorization-service
+
+  auth-service:
+    image: juantulcanaza/auth-service:latest
+    ports:
+      - "3001:3001"
+
+  user-profile-service:
+    image: juantulcanaza/user-profile-service:latest
+    ports:
+      - "3002:3002"
+
+  nutrition-form-service:
+    image: juantulcanaza/nutrition-form-service:latest
+    ports:
+      - "3003:3003"
+
+  authorization-service:
+    image: juantulcanaza/authorization-service:latest
+    ports:
+      - "3004:3004"
