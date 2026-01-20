@@ -79,6 +79,8 @@ export default function NutriGym() {
   const [confirmAction, setConfirmAction] = useState<null | "end" | "cancel">(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
+  
+
 
 
 
