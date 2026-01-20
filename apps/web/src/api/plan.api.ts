@@ -1,14 +1,5 @@
 // src/api/plan.api.ts
-import { createHttp } from "./http";
-
-const baseURL =
-  import.meta.env.VITE_PLAN_MANAGEMENT_URL || "http://localhost:3005";
-
-console.log("[ENV] VITE_PLAN_MANAGEMENT_URL =", import.meta.env.VITE_PLAN_MANAGEMENT_URL);
-console.log("[Plan API] baseURL =", baseURL);
-
-
-const http = createHttp(baseURL);
+import { api } from "./client";
 
 export type MealPlan = {
   id: string;
@@ -19,10 +10,10 @@ export type MealPlan = {
   protein: number;
   carbs: number;
   fats: number;
-  status: string; // active/archived/draft (según backend)
+  status: string;
   version: number;
   is_current: boolean;
-  created_at: string; // ISO
+  created_at: string;
   updated_at: string | null;
 };
 
@@ -31,45 +22,46 @@ function authHeaders(token: string) {
 }
 
 export async function getMyPlans(token: string): Promise<MealPlan[]> {
-  const res = await http.get<MealPlan[]>("/plans", {
+  const res = await api.get<MealPlan[]>("/api/plans/plans", {
     headers: authHeaders(token),
   });
   return res.data;
 }
 
 export async function getCurrentPlan(token: string): Promise<MealPlan> {
-  const res = await http.get<MealPlan>("/plans/current", {
+  const res = await api.get<MealPlan>("/api/plans/plans/current", {
     headers: authHeaders(token),
   });
   return res.data;
 }
 
 export async function generatePlan(token: string): Promise<MealPlan> {
-  // Plan Management ya toma profile + nutrition-form internamente
-  const res = await http.post<MealPlan>("/plans/generate", null, {
+  const res = await api.post<MealPlan>("/api/plans/plans/generate", null, {
     headers: authHeaders(token),
   });
   return res.data;
 }
+
 export async function deletePlan(token: string, planId: string): Promise<void> {
-  await http.delete(`/plans/${planId}`, {
+  await api.delete(`/api/plans/plans/${planId}`, {
     headers: authHeaders(token),
   });
 }
+
 export async function updatePlan(
   token: string,
   planId: string,
   data: Partial<MealPlan>
 ): Promise<MealPlan> {
-  const res = await http.put<MealPlan>(`/plans/${planId}`, data, {
+  const res = await api.put<MealPlan>(`/api/plans/plans/${planId}`, data, {
     headers: authHeaders(token),
   });
   return res.data;
 }
 
 export async function archivePlan(token: string, planId: string) {
-  const res = await http.put(
-    `/plans/${planId}`,
+  const res = await api.put(
+    `/api/plans/plans/${planId}`,
     { status: "archived", is_current: false },
     { headers: authHeaders(token) }
   );
@@ -77,8 +69,8 @@ export async function archivePlan(token: string, planId: string) {
 }
 
 export async function endPlan(token: string): Promise<MealPlan> {
-  const res = await http.post<MealPlan>(
-    "/plans/current/end",
+  const res = await api.post<MealPlan>(
+    "/api/plans/plans/current/end",
     null,
     { headers: authHeaders(token) }
   );
@@ -86,8 +78,8 @@ export async function endPlan(token: string): Promise<MealPlan> {
 }
 
 export async function cancelPlan(token: string): Promise<MealPlan> {
-  const res = await http.post<MealPlan>(
-    "/plans/current/cancel",
+  const res = await api.post<MealPlan>(
+    "/api/plans/plans/current/cancel",
     null,
     { headers: authHeaders(token) }
   );
@@ -95,8 +87,8 @@ export async function cancelPlan(token: string): Promise<MealPlan> {
 }
 
 export async function regenerateCurrentPlan(token: string): Promise<MealPlan> {
-  const res = await http.post<MealPlan>(
-    "/plans/current/regenerate",
+  const res = await api.post<MealPlan>(
+    "/api/plans/plans/current/regenerate",
     null,
     { headers: authHeaders(token) }
   );

@@ -1,12 +1,5 @@
-import { createHttp } from "./http";
-
-const PROFILE_URL = import.meta.env.VITE_PROFILE_API_URL;
-
-if (!PROFILE_URL) {
-  throw new Error("VITE_PROFILE_API_URL is missing in .env");
-}
-
-const profileHttp = createHttp(PROFILE_URL);
+// src/api/profile.api.ts
+import { api } from "./client";
 
 export type ProfilePayload = {
   first_name: string;
@@ -25,7 +18,7 @@ export type ProfileResponse = ProfilePayload & {
 };
 
 export async function getMyProfile(token: string): Promise<ProfileResponse> {
-  const res = await profileHttp.get("/profiles/me", {
+  const res = await api.get("/api/profile/profiles/me", {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data as ProfileResponse;
@@ -35,32 +28,24 @@ export async function createProfile(
   token: string,
   payload: ProfilePayload
 ): Promise<ProfileResponse> {
-  const res = await profileHttp.post("/profiles", payload, {
+  const res = await api.post("/api/profile/profiles", payload, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data as ProfileResponse;
 }
 
-/**
- * Actualiza el perfil del usuario autenticado.
- * Requiere backend: PUT /profiles/me
- */
 export async function updateMyProfile(
   token: string,
   payload: ProfilePayload
 ): Promise<ProfileResponse> {
-  const res = await profileHttp.put("/profiles/me", payload, {
+  const res = await api.put("/api/profile/profiles/me", payload, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data as ProfileResponse;
 }
 
-/**
- * Elimina el perfil del usuario autenticado.
- * Requiere backend: DELETE /profiles/me
- */
 export async function deleteMyProfile(token: string): Promise<{ detail: string }> {
-  const res = await profileHttp.delete("/profiles/me", {
+  const res = await api.delete("/api/profile/profiles/me", {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data as { detail: string };

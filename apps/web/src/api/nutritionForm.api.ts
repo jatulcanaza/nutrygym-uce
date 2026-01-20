@@ -1,12 +1,5 @@
-import { createHttp } from "./http";
-
-const NUTRITION_FORM_URL = import.meta.env.VITE_NUTRITION_FORM_API_URL;
-
-if (!NUTRITION_FORM_URL) {
-  throw new Error("VITE_NUTRITION_FORM_API_URL is missing in .env");
-}
-
-const nutritionHttp = createHttp(NUTRITION_FORM_URL);
+// src/api/nutritionForm.api.ts
+import { api } from "./client";
 
 export type NutritionFormPayload = {
   meals_per_day: number;
@@ -23,7 +16,7 @@ export type NutritionFormResponse = NutritionFormPayload & {
 };
 
 export async function getMyNutritionForm(token: string): Promise<NutritionFormResponse> {
-  const res = await nutritionHttp.get("/nutrition-form/me", {
+  const res = await api.get("/api/nutrition/nutrition-form/me", {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data as NutritionFormResponse;
@@ -33,7 +26,7 @@ export async function createNutritionForm(
   token: string,
   payload: NutritionFormPayload
 ): Promise<NutritionFormResponse> {
-  const res = await nutritionHttp.post("/nutrition-form", payload, {
+  const res = await api.post("/api/nutrition/nutrition-form", payload, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data as NutritionFormResponse;
@@ -43,14 +36,14 @@ export async function updateMyNutritionForm(
   token: string,
   payload: NutritionFormPayload
 ): Promise<NutritionFormResponse> {
-  const res = await nutritionHttp.put("/nutrition-form/me", payload, {
+  const res = await api.put("/api/nutrition/nutrition-form/me", payload, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data as NutritionFormResponse;
 }
 
 export async function deleteMyNutritionForm(token: string): Promise<void> {
-  await nutritionHttp.delete("/nutrition-form/me", {
+  await api.delete("/api/nutrition/nutrition-form/me", {
     headers: { Authorization: `Bearer ${token}` },
   });
 }

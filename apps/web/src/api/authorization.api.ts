@@ -1,26 +1,16 @@
-import { createHttp } from "./http";
+// src/api/authorization.api.ts
+import { api } from "./client";
 
 export type Role = "ADMIN" | "ESTUDIANTE";
 
-const AUTHZ_URL = import.meta.env.VITE_AUTHZ_API_URL;
-
-console.log("[ENV] VITE_AUTHZ_API_URL =", AUTHZ_URL);
-
-if (!AUTHZ_URL) {
-  throw new Error("VITE_AUTHZ_API_URL is missing in .env");
-}
-
-const authzHttp = createHttp(AUTHZ_URL);
-
 /**
  * Obtiene el rol del usuario autenticado
- * desde /authorize/my-role
+ * Backend: GET /authorize/my-role
  */
 export async function getMyRole(token: string): Promise<Role> {
-  const res = await authzHttp.get("/authorize/my-role", {
+  const res = await api.get("/api/authz/authorize/my-role", {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  // ✅ el backend devuelve un objeto → usamos solo el campo role
   return res.data.role as Role;
 }
