@@ -1,11 +1,14 @@
+version: "3.9"
+
 services:
+  # ======================
+  # GATEWAY (NGINX + FRONT BUILD)
+  # ======================
   gateway:
-    build:
-      context: .
-      dockerfile: infrastructure/terraform/modules/gateway/Dockerfile
+    image: juantulcanaza/nutrygym-gateway:qa-1
     container_name: nutrigym-gateway
     ports:
-      - "8080:80"
+      - "80:80"
     depends_on:
       - auth-service
       - user-profile-service
@@ -21,7 +24,7 @@ services:
   # AUTH SERVICE + POSTGRES
   # ======================
   auth-service:
-    build: ./services/auth-service
+    image: juantulcanaza/auth-service:qa-1
     container_name: auth-service
     env_file: ./services/auth-service/.env
     depends_on:
@@ -47,7 +50,7 @@ services:
   # USER PROFILE SERVICE + DB
   # ===========================
   user-profile-service:
-    build: ./services/user-profile-service
+    image: juantulcanaza/user-profile-service:qa-1
     container_name: user-profile-service
     env_file: ./services/user-profile-service/.env
     depends_on:
@@ -80,7 +83,7 @@ services:
   # ROLE / PERMISSION (RBAC)
   # ======================
   authorization-service:
-    build: ./services/role_permission-service
+    image: juantulcanaza/authorization-service:qa-1
     container_name: authorization-service
     env_file: ./services/role_permission-service/.env
     restart: unless-stopped
@@ -91,7 +94,7 @@ services:
   # NUTRITION FORM + POSTGRES + REDIS + KAFKA
   # ======================
   nutrition-form:
-    build: ./services/nutrition-form-service
+    image: juantulcanaza/nutrition-form-service:qa-1
     container_name: nutrition-form
     env_file: ./services/nutrition-form-service/.env
     depends_on:
@@ -172,7 +175,7 @@ services:
   # PLAN MANAGEMENT + POSTGRES + REDIS
   # ======================
   plan-management:
-    build: ./services/plan-management-service
+    image: juantulcanaza/plan-management-service:qa-1
     container_name: plan-management
     env_file: ./services/plan-management-service/.env
     depends_on:
@@ -222,7 +225,7 @@ services:
       - nutrigym-network
 
   ai-generator-service:
-    build: ./services/ai-generator-service
+    image: juantulcanaza/ai-generator-service:qa-1
     container_name: ai-generator-service
     env_file: ./services/ai-generator-service/.env
     depends_on:
