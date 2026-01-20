@@ -129,7 +129,7 @@ export default function Auth() {
     <div className="auth-wrapper">
       <div className="auth-container">
         <div className="auth-left">
-          <img src="src/assets/logo.svg" alt="NutryGym Logo" className="logo" />
+          <img src="/logo.svg" alt="NutryGym Logo" className="logo" />
         </div>
 
         <div className="auth-right">

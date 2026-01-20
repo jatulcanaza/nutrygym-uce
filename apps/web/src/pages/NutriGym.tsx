@@ -21,7 +21,8 @@ import {
 // Recomendado: coloca la imagen en public y usa /nutrition-hero.png
 // Si sí la tienes en src/assets, puedes volver a importarla.
 // const HERO_IMG = "/nutrition-hero.png";
-const HERO_IMG = "/src/assets/nutrition-hero.png";
+const HERO_IMG = "/nutrition-hero.png";
+
 
 type Gender = "male" | "female" | "other";
 type Goal = "lose_weight" | "gain_muscle" | "maintain";
