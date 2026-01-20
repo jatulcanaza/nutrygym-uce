@@ -21,12 +21,12 @@ variable "ami_id" {
 
 variable "instance_type" {
   type    = string
-  default = "t3.micro"
+  default = "t3.large"
 }
 
 variable "desired_capacity" {
   type    = number
-  default = 2
+  default = 1
 }
 
 variable "min_size" {
@@ -36,7 +36,7 @@ variable "min_size" {
 
 variable "max_size" {
   type    = number
-  default = 3
+  default = 1
 }
 
 variable "db_ami_id" {

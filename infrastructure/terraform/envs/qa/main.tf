@@ -21,8 +21,9 @@ module "vpc" {
 }
 /* Security Groups */
 module "security_groups" {
-  source = "../../modules/security-groups"
-  vpc_id = module.vpc.vpc_id
+  source        = "../../modules/security-groups"
+  vpc_id        = module.vpc.vpc_id
+  bastion_sg_id = module.bastion.bastion_sg_id
 }
 /*application load balancer and auto scaling group*/
 module "alb_asg" {
@@ -45,18 +46,20 @@ module "alb_asg" {
   desired_capacity = var.desired_capacity
   min_size         = var.min_size
   max_size         = var.max_size
+
+  key_name = var.key_name
 }
 
 /* Database Host */
 module "ec2_data_host" {
   source = "../../modules/ec2_data_host"
 
-  name               = "nutrygym-qa-db"
-  ami_id             = var.db_ami_id
-  instance_type      = var.db_instance_type
-  subnet_id          = module.vpc.private_subnet_ids[0]
-  security_group_id  = module.db_security_group.security_group_id
-  key_name           = var.key_name
+  name              = "nutrygym-qa-db"
+  ami_id            = var.db_ami_id
+  instance_type     = var.db_instance_type
+  subnet_id         = module.vpc.private_subnet_ids[0]
+  security_group_id = module.db_security_group.security_group_id
+  key_name          = var.key_name
 }
 /* Database Security Group */
 module "db_security_group" {
@@ -72,13 +75,13 @@ module "db_security_group" {
 module "bastion" {
   source = "../../modules/bastion"
 
-  name              = "nutrygym-qa-bastion"
-  ami_id            = var.bastion_ami_id
-  instance_type     = "t3.micro"
-  subnet_id         = module.vpc.public_subnet_ids[0]
-  vpc_id            = module.vpc.vpc_id
-  key_name          = var.key_name
-  allowed_ssh_cidr  = var.admin_ip_cidr
+  name             = "nutrygym-qa-bastion"
+  ami_id           = var.bastion_ami_id
+  instance_type    = "t3.micro"
+  subnet_id        = module.vpc.public_subnet_ids[0]
+  vpc_id           = module.vpc.vpc_id
+  key_name         = var.key_name
+  allowed_ssh_cidr = var.admin_ip_cidr
 }
 
 module "kafka_ec2" {
