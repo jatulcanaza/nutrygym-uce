@@ -62,3 +62,15 @@ variable "key_name" {
   description = "Key pair name for SSH access to ASG instances"
   type        = string
 }
+variable "db_private_ip" {
+  description = "Private IP of DB host instance"
+  type        = string
+}
+
+variable "kafka_private_ip" {
+  description = "Private IP of Kafka host instance (optional if Kafka is external)"
+  type        = string
+  default     = ""
+}
+
+

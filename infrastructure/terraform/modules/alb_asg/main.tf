@@ -52,8 +52,13 @@ resource "aws_launch_template" "this" {
   vpc_security_group_ids = [var.microservices_sg_id]
 
   user_data = base64encode(
-  templatefile("${path.module}/user_data.sh", {})
+  templatefile("${path.module}/user_data_app.sh", {
+    db_private_ip    = var.db_private_ip
+    kafka_private_ip = var.kafka_private_ip
+    alb_dns_name     = aws_lb.this.dns_name
+  })
 )
+
 
 
   tag_specifications {
