@@ -17,6 +17,7 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -43,10 +44,19 @@ resource "aws_security_group" "microservices" {
     protocol        = "tcp"
     security_groups = [var.bastion_sg_id]
   }
+
+  ingress {
+  description = "Kafka from app instances"
+  from_port   = 9092
+  to_port     = 9092
+  protocol    = "tcp"
+  self        = true
+  }
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
 }

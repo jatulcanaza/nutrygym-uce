@@ -14,7 +14,12 @@ variable "app_sg_id" {
   type        = string
 }
 
-variable "db_port" {
-  description = "Puerto de la base de datos"
-  type        = number
+
+variable "allowed_ports" {
+  description = "List of allowed ports from app SG"
+  type        = list(number)
+}
+variable "bastion_sg_id" {
+  description = "Security Group ID of the Bastion host"
+  type        = string
 }

@@ -40,6 +40,9 @@ module "alb_asg" {
   alb_sg_id           = module.security_groups.alb_sg_id
   microservices_sg_id = module.security_groups.microservices_sg_id
 
+  db_private_ip    = module.ec2_data_host.private_ip
+  kafka_private_ip = module.kafka_ec2.private_ip
+
   ami_id = var.ami_id
 
   instance_type    = var.instance_type
@@ -65,10 +68,11 @@ module "ec2_data_host" {
 module "db_security_group" {
   source = "../../modules/security-groups/db"
 
-  name      = "nutrygym-qa-db-sg"
-  vpc_id    = module.vpc.vpc_id
-  app_sg_id = module.security_groups.microservices_sg_id
-  db_port   = 27017
+  name          = "nutrygym-qa-db-sg"
+  vpc_id        = module.vpc.vpc_id
+  app_sg_id     = module.security_groups.microservices_sg_id
+  bastion_sg_id = module.bastion.bastion_sg_id 
+  allowed_ports = [5432, 5433, 5434, 5435, 6379, 6380, 27017]
 }
 
 /* Bastion Host */

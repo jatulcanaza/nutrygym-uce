@@ -6,17 +6,9 @@ resource "aws_instance" "this" {
 
   vpc_security_group_ids = [var.security_group_id]
 
-  user_data = base64encode(<<EOF
-#!/bin/bash
-yum update -y
-amazon-linux-extras install docker -y
-systemctl start docker
-systemctl enable docker
-usermod -aG docker ec2-user
-EOF
-  )
+  user_data = base64encode(templatefile("${path.module}/user_data_kafka.sh", {}))
 
-  tags = {
-    Name = var.name
-  }
+  associate_public_ip_address = false
+
+  tags = { Name = var.name }
 }

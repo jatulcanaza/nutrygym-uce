@@ -27,3 +27,8 @@ variable "key_name" {
   description = "Key pair para acceso SSH"
   type        = string
 }
+
+variable "data_volume_size" {
+  type    = number
+  default = 30
+}
