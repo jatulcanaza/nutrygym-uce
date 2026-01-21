@@ -22,6 +22,7 @@ dist/
 .env.prod
 
 # Terraform
+*.backup
 .terraform/
 *.tfstate
 *.tfstate.backup
