@@ -40,6 +40,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+
 /* Launch Template */
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.project_name}-${var.environment}-lt-"
@@ -50,18 +51,10 @@ resource "aws_launch_template" "this" {
 
   vpc_security_group_ids = [var.microservices_sg_id]
 
-  user_data = base64encode(<<EOF
-#!/bin/bash
-yum update -y
-amazon-linux-extras install docker -y
-systemctl start docker
-systemctl enable docker
-usermod -aG docker ec2-user
-curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
-echo "Docker OK" > /home/ec2-user/docker_ready.txt
-EOF
-  )
+  user_data = base64encode(
+  templatefile("${path.module}/user_data.sh", {})
+)
+
 
   tag_specifications {
     resource_type = "instance"
