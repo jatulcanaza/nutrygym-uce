@@ -123,3 +123,31 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Node
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Environment
+.env
+.env.*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Temporary
+.cache/
