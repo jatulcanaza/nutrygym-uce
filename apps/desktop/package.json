@@ -1,0 +1,29 @@
+{
+  "name": "nutrygym-desktop",
+  "version": "1.0.0",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^latest",
+    "electron-builder": "^latest"
+  },
+  "build": {
+    "appId": "com.nutrygym.desktop",
+    "productName": "NutryGym",
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html",
+      "offline.css",
+      "assets/**"
+    ]
+  }
+}

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>NutryGym Desktop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./offline.css" />
+</head>
+
+<body>
+  <main class="offline-page is-mounted">
+
+    <!-- HERO -->
+    <section class="offline-hero">
+      <div class="hero-content">
+        <div class="hero-left">
+
+          <img src="./assets/logo.svg" alt="NutryGym logo" class="logo" />
+
+          <span class="welcome-kicker">NutryGym · Desktop</span>
+
+          <h1 class="welcome-title">
+            Nutry<span class="green">Gym</span>
+          </h1>
+
+          <p class="hero-subline">
+            Your AI-powered nutrition platform
+          </p>
+
+          <p class="welcome-subtitle" id="status-text">
+            We couldn’t connect to the online platform right now.
+            This desktop app is still available in offline mode.
+          </p>
+
+          <div class="welcome-actions">
+            <button
+              class="btn btn-primary"
+              id="retry-btn"
+              onclick="retryConnection()"
+            >
+              <span class="btn-label">Try again</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- INFO -->
+    <section class="section">
+      <div class="section-title">
+        <h2>What can you do?</h2>
+        <p>NutryGym Desktop works as an informational companion app.</p>
+      </div>
+
+      <div class="how-grid">
+        <div class="how-step">
+          <div class="how-icon">🌐</div>
+          <div>
+            <div class="how-title">Online mode</div>
+            <div class="how-desc">
+              When the platform is available, the app loads the full web system.
+            </div>
+          </div>
+        </div>
+
+        <div class="how-step">
+          <div class="how-icon">📦</div>
+          <div>
+            <div class="how-title">Offline fallback</div>
+            <div class="how-desc">
+              If the connection fails, you still get a consistent experience.
+            </div>
+          </div>
+        </div>
+
+        <div class="how-step">
+          <div class="how-icon">🎨</div>
+          <div>
+            <div class="how-title">Unified design</div>
+            <div class="how-desc">
+              Same colors and UX as the NutryGym web platform.
+            </div>
+          </div>
+        </div>
+
+        <div class="how-step">
+          <div class="how-icon">🖥️</div>
+          <div>
+            <div class="how-title">Desktop ready</div>
+            <div class="how-desc">
+              Optimized for desktop usage using Electron.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function retryConnection() {
+      const btn = document.getElementById("retry-btn");
+      const status = document.getElementById("status-text");
+
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      status.textContent = "Checking connection to NutryGym platform...";
+
+      // Simula intento de reconexión (Electron volverá a intentar cargar la URL)
+      setTimeout(() => {
+        location.reload();
+      }, 1200);
+    }
+  </script>
+</body>
+</html>
