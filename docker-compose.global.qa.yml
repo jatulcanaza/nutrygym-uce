@@ -1,11 +1,8 @@
 version: "3.9"
 
 services:
-  # ======================
-  # GATEWAY (NGINX + FRONT BUILD)
-  # ======================
   gateway:
-    image: juantulcanaza/nutrygym-gateway:qa-1
+    image: juantulcanaza/nutrygym-gateway:qa-2
     container_name: nutrigym-gateway
     ports:
       - "80:80"
@@ -20,13 +17,11 @@ services:
     networks:
       - nutrigym-network
 
-  # ======================
   # AUTH SERVICE + POSTGRES
-  # ======================
   auth-service:
     image: juantulcanaza/auth-service:qa-1
     container_name: auth-service
-    env_file: ./services/auth-service/.env
+    env_file: ./.env.auth
     depends_on:
       - auth-db
     restart: unless-stopped
@@ -46,13 +41,11 @@ services:
     networks:
       - nutrigym-network
 
-  # ===========================
-  # USER PROFILE SERVICE + DB
-  # ===========================
+  # USER PROFILE + POSTGRES
   user-profile-service:
     image: juantulcanaza/user-profile-service:qa-1
     container_name: user-profile-service
-    env_file: ./services/user-profile-service/.env
+    env_file: ./.env.user-profile
     depends_on:
       user-profile-db:
         condition: service_healthy
@@ -79,24 +72,20 @@ services:
     networks:
       - nutrigym-network
 
-  # ======================
-  # ROLE / PERMISSION (RBAC)
-  # ======================
+  # AUTHORIZATION (RBAC)
   authorization-service:
     image: juantulcanaza/authorization-service:qa-1
     container_name: authorization-service
-    env_file: ./services/role_permission-service/.env
+    env_file: ./.env.authz
     restart: unless-stopped
     networks:
       - nutrigym-network
 
-  # ======================
   # NUTRITION FORM + POSTGRES + REDIS + KAFKA
-  # ======================
   nutrition-form:
     image: juantulcanaza/nutrition-form-service:qa-1
     container_name: nutrition-form
-    env_file: ./services/nutrition-form-service/.env
+    env_file: ./.env.nutrition
     depends_on:
       nutrition-postgres:
         condition: service_healthy
@@ -138,9 +127,7 @@ services:
     networks:
       - nutrigym-network
 
-  # ======================
   # KAFKA
-  # ======================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.3
     container_name: nutrigym-zookeeper
@@ -171,13 +158,11 @@ services:
     networks:
       - nutrigym-network
 
-  # ======================
   # PLAN MANAGEMENT + POSTGRES + REDIS
-  # ======================
   plan-management:
     image: juantulcanaza/plan-management-service:qa-1
     container_name: plan-management
-    env_file: ./services/plan-management-service/.env
+    env_file: ./.env.plans
     depends_on:
       plan-postgres:
         condition: service_healthy
@@ -212,9 +197,7 @@ services:
     networks:
       - nutrigym-network
 
-  # ======================
   # AI GENERATOR + MONGO
-  # ======================
   ai-generator-mongo:
     image: mongo:7.0
     container_name: ai-generator-mongo
@@ -227,7 +210,7 @@ services:
   ai-generator-service:
     image: juantulcanaza/ai-generator-service:qa-1
     container_name: ai-generator-service
-    env_file: ./services/ai-generator-service/.env
+    env_file: ./.env.ai
     depends_on:
       - ai-generator-mongo
       - kafka
