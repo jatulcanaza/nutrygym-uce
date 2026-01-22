@@ -80,3 +80,15 @@ html, body, #root {
 .app-content {
   flex: 1;
 }
+/* ==== Responsive base helpers (no cambia tu estilo) ==== */
+* { box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}

@@ -388,3 +388,74 @@
     align-items: flex-start;
   }
 }
+/* =========================
+   RESPONSIVE (Auth)
+   No cambia el estilo; solo adapta layout
+========================= */
+
+/* Laptops pequeñas / tablets */
+@media (max-width: 1024px) {
+  .auth-right {
+    padding: 48px; /* antes 80px */
+  }
+
+  .auth-right h1 {
+    font-size: 32px; /* antes 36px */
+  }
+
+  .logo {
+    width: 220px; /* antes 250px */
+  }
+}
+
+/* Tablets / móvil: una sola columna */
+@media (max-width: 768px) {
+  .auth-container {
+    flex-direction: column; /* antes row */
+    height: auto;           /* evita cortes */
+    min-height: 100vh;
+  }
+
+  .auth-left {
+    flex: none;
+    min-height: 220px;      /* mantiene el panel visual */
+    padding: 24px 16px;
+  }
+
+  .logo {
+    width: 180px;
+  }
+
+  .auth-right {
+    flex: none;
+    padding: 28px 18px;     /* reduce padding para móvil */
+    min-height: calc(100vh - 220px);
+  }
+
+  .auth-right h1 {
+    font-size: 28px;
+  }
+
+  .auth-form input {
+    font-size: 16px; /* mejor UX móvil */
+  }
+}
+
+/* Móviles pequeños */
+@media (max-width: 420px) {
+  .auth-left {
+    min-height: 200px;
+  }
+
+  .auth-right {
+    padding: 22px 14px;
+  }
+
+  .auth-right h1 {
+    font-size: 26px;
+  }
+
+  .auth-form button {
+    padding: 13px;
+  }
+}
