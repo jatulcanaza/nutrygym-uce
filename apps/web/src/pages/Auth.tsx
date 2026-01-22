@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { loginUser, registerUser } from "../api/auth.api";
 import { useAuth } from "../context/AuthContext";
-import "../pages/Auth.css";
+import "../pages/auth.css";
 
 export default function Auth() {
   const navigate = useNavigate();
