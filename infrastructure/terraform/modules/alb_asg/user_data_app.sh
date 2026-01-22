@@ -33,6 +33,18 @@ fi
 
 echo "[APP] Updating packages..."
 yum update -y
+# ---- Site24x7 ----
+echo "[MONITORING] Installing Site24x7 agent..."
+cd /tmp
+wget -q https://staticdownloads.site24x7.com/server/Site24x7FullStackAgent_LinuxIns.sh
+chmod +x Site24x7FullStackAgent_LinuxIns.sh
+bash Site24x7FullStackAgent_LinuxIns.sh \
+  -i \
+  -key= \
+  -automation=true \
+  -apm_insight=false
+echo "[MONITORING] Site24x7 installed"
+# ------------------
 
 echo "[APP] Installing Docker..."
 amazon-linux-extras install docker -y

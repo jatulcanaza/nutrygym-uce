@@ -9,6 +9,18 @@ mkdir -p "$${APP_DIR}"
 cd "$${APP_DIR}"
 
 yum update -y
+# ---- Site24x7 ----
+echo "[MONITORING] Installing Site24x7 agent..."
+cd /tmp
+wget -q https://staticdownloads.site24x7.com/server/Site24x7FullStackAgent_LinuxIns.sh
+chmod +x Site24x7FullStackAgent_LinuxIns.sh
+bash Site24x7FullStackAgent_LinuxIns.sh \
+  -i \
+  -key= \
+  -automation=true \
+  -apm_insight=false
+echo "[MONITORING] Site24x7 installed"
+# ------------------
 amazon-linux-extras install docker -y
 systemctl enable docker
 systemctl start docker
