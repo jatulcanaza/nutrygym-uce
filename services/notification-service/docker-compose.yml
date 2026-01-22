@@ -1,0 +1,36 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: notification-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - notification-net
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: notification-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - notification-net
+
+
+  notification-service:
+    build: .
+    container_name: notification-service
+    env_file: .env
+    ports:
+      - "3011:3011"
+    depends_on:
+      - rabbitmq
+      - mosquitto
+    networks:
+      - notification-net
+
+networks:
+  notification-net:
+    driver: bridge
