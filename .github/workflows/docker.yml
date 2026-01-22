@@ -1,0 +1,137 @@
+name: CI - Build & Push Docker Images (QA)
+
+on:
+  push:
+    branches: ["qa"]
+
+env:
+  DOCKERHUB_NAMESPACE: juantulcanaza
+  QA_TAG: qa-${{ github.run_number }}
+
+jobs:
+  detect-changes:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+      auth: ${{ steps.filter.outputs.auth }}
+      authorization: ${{ steps.filter.outputs.authorization }}
+      user_profile: ${{ steps.filter.outputs.user_profile }}
+      nutrition_form: ${{ steps.filter.outputs.nutrition_form }}
+      plan_management: ${{ steps.filter.outputs.plan_management }}
+      ai_generator: ${{ steps.filter.outputs.ai_generator }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            web:
+              - "apps/web/**"
+            gateway:
+              - "infrastructure/terraform/modules/gateway/**"
+            auth:
+              - "services/auth-service/**"
+            authorization:
+              - "services/role_permission-service/**"
+            user_profile:
+              - "services/user-profile-service/**"
+            nutrition_form:
+              - "services/nutrition-form-service/**"
+            plan_management:
+              - "services/plan-management-service/**"
+            ai_generator:
+              - "services/ai-generator-service/**"
+
+  build-and-push:
+    name: Build & Push changed images
+    runs-on: ubuntu-latest
+    needs: detect-changes
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - key: web
+            image: nutrygym-web
+            context: apps/web
+            dockerfile: apps/web/Dockerfile
+
+          - key: gateway
+            image: nutrygym-gateway
+            context: .
+            dockerfile: infrastructure/terraform/modules/gateway/Dockerfile
+
+          - key: auth
+            image: auth-service
+            context: services/auth-service
+            dockerfile: services/auth-service/Dockerfile
+
+          - key: authorization
+            image: authorization-service
+            context: services/role_permission-service
+            dockerfile: services/role_permission-service/Dockerfile
+
+          - key: user_profile
+            image: user-profile-service
+            context: services/user-profile-service
+            dockerfile: services/user-profile-service/Dockerfile
+
+          - key: nutrition_form
+            image: nutrition-form-service
+            context: services/nutrition-form-service
+            dockerfile: services/nutrition-form-service/Dockerfile
+
+          - key: plan_management
+            image: plan-management-service
+            context: services/plan-management-service
+            dockerfile: services/plan-management-service/Dockerfile
+
+          - key: ai_generator
+            image: ai-generator-service
+            context: services/ai-generator-service
+            dockerfile: services/ai-generator-service/Dockerfile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Decide if this service changed
+        id: should_run
+        run: |
+          KEY="${{ matrix.key }}"
+          CHANGED="${{ needs.detect-changes.outputs[format('{0}', matrix.key)] }}"
+          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+
+      - name: Skip if not changed
+        if: steps.should_run.outputs.changed != 'true'
+        run: echo "No changes for ${{ matrix.key }} -> skipping."
+
+      - name: Login to Docker Hub
+        if: steps.should_run.outputs.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        if: steps.should_run.outputs.changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push
+        if: steps.should_run.outputs.changed == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image }}:${{ env.QA_TAG }}
+            ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image }}:qa-latest
+            ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image }}:qa-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
