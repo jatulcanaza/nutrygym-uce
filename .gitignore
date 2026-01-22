@@ -72,7 +72,6 @@ trim_trailing_whitespace = false
 @'
 node_modules
 npm-debug.log
-Dockerfile
 .dockerignore
 .gitignore
 .git
