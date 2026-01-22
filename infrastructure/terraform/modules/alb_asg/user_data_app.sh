@@ -56,12 +56,19 @@ cat > docker-compose.app.yml <<YAML
 version: "3.9"
 
 services:
+  web:
+    image: juantulcanaza/nutrygym-web:qa-1
+    container_name: nutrigym-web
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
   gateway:
-    image: juantulcanaza/nutrygym-gateway:qa-2
+    image: juantulcanaza/nutrygym-gateway:qa-3
     container_name: nutrigym-gateway
     ports:
-      - "PUERTO_GATEWAY_AQUI:80"        # <-- PUERTO PÚBLICO
+      - "80:80"
     depends_on:
+      - web
       - auth-service
       - user-profile-service
       - authorization-service

@@ -1,4 +1,13 @@
 services:
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: nutrigym-web
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
+
   gateway:
     build:
       context: .
@@ -7,15 +16,11 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - auth-service
-      - user-profile-service
-      - authorization-service
-      - nutrition-form
-      - plan-management
-      - ai-generator-service
+      - web
     restart: unless-stopped
     networks:
       - nutrigym-network
+
 
   # ======================
   # AUTH SERVICE + POSTGRES
