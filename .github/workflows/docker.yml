@@ -13,17 +13,12 @@ jobs:
     name: Detect changed services
     runs-on: ubuntu-latest
     outputs:
-      web: ${{ steps.filter.outputs.web }}
-      gateway: ${{ steps.filter.outputs.gateway }}
-      auth: ${{ steps.filter.outputs.auth }}
-      authorization: ${{ steps.filter.outputs.authorization }}
-      user_profile: ${{ steps.filter.outputs.user_profile }}
-      nutrition_form: ${{ steps.filter.outputs.nutrition_form }}
-      plan_management: ${{ steps.filter.outputs.plan_management }}
-      ai_generator: ${{ steps.filter.outputs.ai_generator }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Filter paths
         id: filter
@@ -47,83 +42,92 @@ jobs:
             ai_generator:
               - "services/ai-generator-service/**"
 
+      - name: Build matrix from changes
+        id: set-matrix
+        run: |
+          CHANGES='${{ steps.filter.outputs.changes }}'
+          echo "Detected changes: $CHANGES"
+
+          # Construye un array JSON solo con lo que cambió
+          MATRIX="[]"
+
+          add() {
+            MATRIX=$(node -e "
+              const m = JSON.parse(process.env.MATRIX);
+              m.push(JSON.parse(process.env.ITEM));
+              console.log(JSON.stringify(m));
+            " )
+          }
+
+          export MATRIX
+
+          if echo "$CHANGES" | grep -q '"web"'; then
+            export ITEM='{"image":"nutrygym-web","context":"./apps/web","dockerfile":"./apps/web/Dockerfile"}'
+            add
+          fi
+
+          if echo "$CHANGES" | grep -q '"gateway"'; then
+            export ITEM='{"image":"nutrygym-gateway","context":"./","dockerfile":"./infrastructure/terraform/modules/gateway/Dockerfile"}'
+            add
+          fi
+
+          if echo "$CHANGES" | grep -q '"auth"'; then
+            export ITEM='{"image":"auth-service","context":"./services/auth-service","dockerfile":"./services/auth-service/Dockerfile"}'
+            add
+          fi
+
+          if echo "$CHANGES" | grep -q '"authorization"'; then
+            export ITEM='{"image":"authorization-service","context":"./services/role_permission-service","dockerfile":"./services/role_permission-service/Dockerfile"}'
+            add
+          fi
+
+          if echo "$CHANGES" | grep -q '"user_profile"'; then
+            export ITEM='{"image":"user-profile-service","context":"./services/user-profile-service","dockerfile":"./services/user-profile-service/Dockerfile"}'
+            add
+          fi
+
+          if echo "$CHANGES" | grep -q '"nutrition_form"'; then
+            export ITEM='{"image":"nutrition-form-service","context":"./services/nutrition-form-service","dockerfile":"./services/nutrition-form-service/Dockerfile"}'
+            add
+          fi
+
+          if echo "$CHANGES" | grep -q '"plan_management"'; then
+            export ITEM='{"image":"plan-management-service","context":"./services/plan-management-service","dockerfile":"./services/plan-management-service/Dockerfile"}'
+            add
+          fi
+
+          if echo "$CHANGES" | grep -q '"ai_generator"'; then
+            export ITEM='{"image":"ai-generator-service","context":"./services/ai-generator-service","dockerfile":"./services/ai-generator-service/Dockerfile"}'
+            add
+          fi
+
+          echo "Final matrix: $MATRIX"
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
   build-and-push:
     name: Build & Push changed images
     runs-on: ubuntu-latest
     needs: detect-changes
-
+    if: needs.detect-changes.outputs.matrix != '[]'
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - key: web
-            image: nutrygym-web
-            context: apps/web
-            dockerfile: apps/web/Dockerfile
-
-          - key: gateway
-            image: nutrygym-gateway
-            context: .
-            dockerfile: infrastructure/terraform/modules/gateway/Dockerfile
-
-          - key: auth
-            image: auth-service
-            context: services/auth-service
-            dockerfile: services/auth-service/Dockerfile
-
-          - key: authorization
-            image: authorization-service
-            context: services/role_permission-service
-            dockerfile: services/role_permission-service/Dockerfile
-
-          - key: user_profile
-            image: user-profile-service
-            context: services/user-profile-service
-            dockerfile: services/user-profile-service/Dockerfile
-
-          - key: nutrition_form
-            image: nutrition-form-service
-            context: services/nutrition-form-service
-            dockerfile: services/nutrition-form-service/Dockerfile
-
-          - key: plan_management
-            image: plan-management-service
-            context: services/plan-management-service
-            dockerfile: services/plan-management-service/Dockerfile
-
-          - key: ai_generator
-            image: ai-generator-service
-            context: services/ai-generator-service
-            dockerfile: services/ai-generator-service/Dockerfile
+        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Decide if this service changed
-        id: should_run
-        run: |
-          KEY="${{ matrix.key }}"
-          CHANGED="${{ needs.detect-changes.outputs[format('{0}', matrix.key)] }}"
-          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
-
-      - name: Skip if not changed
-        if: steps.should_run.outputs.changed != 'true'
-        run: echo "No changes for ${{ matrix.key }} -> skipping."
-
       - name: Login to Docker Hub
-        if: steps.should_run.outputs.changed == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        if: steps.should_run.outputs.changed == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build & push
-        if: steps.should_run.outputs.changed == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
