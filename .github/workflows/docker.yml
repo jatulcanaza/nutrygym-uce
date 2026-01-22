@@ -3,10 +3,15 @@ name: CI - Build & Push Docker Images (QA)
 on:
   push:
     branches: ["qa"]
+  workflow_dispatch:
+
+concurrency:
+  group: docker-qa-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   DOCKERHUB_NAMESPACE: juantulcanaza
-  QA_TAG: qa-${{ github.run_number }}
+  STABLE_TAG: qa
 
 jobs:
   detect-changes:
@@ -14,11 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      any: ${{ steps.set-matrix.outputs.any }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Filter paths
         id: filter
@@ -41,82 +45,91 @@ jobs:
               - "services/plan-management-service/**"
             ai_generator:
               - "services/ai-generator-service/**"
+            notification:
+              - "services/notification-service/**"
 
       - name: Build matrix from changes
         id: set-matrix
+        shell: bash
         run: |
-          CHANGES='${{ steps.filter.outputs.changes }}'
-          echo "Detected changes: $CHANGES"
+          include=()
 
-          # Construye un array JSON solo con lo que cambió
-          MATRIX="[]"
-
-          add() {
-            MATRIX=$(node -e "
-              const m = JSON.parse(process.env.MATRIX);
-              m.push(JSON.parse(process.env.ITEM));
-              console.log(JSON.stringify(m));
-            " )
-          }
-
-          export MATRIX
-
-          if echo "$CHANGES" | grep -q '"web"'; then
-            export ITEM='{"image":"nutrygym-web","context":"./apps/web","dockerfile":"./apps/web/Dockerfile"}'
-            add
+          if [[ "${{ steps.filter.outputs.web }}" == "true" ]]; then
+            include+=('{"key":"web","image":"nutrygym-web","context":"apps/web","dockerfile":"apps/web/Dockerfile"}')
           fi
 
-          if echo "$CHANGES" | grep -q '"gateway"'; then
-            export ITEM='{"image":"nutrygym-gateway","context":"./","dockerfile":"./infrastructure/terraform/modules/gateway/Dockerfile"}'
-            add
+          if [[ "${{ steps.filter.outputs.gateway }}" == "true" ]]; then
+            # OJO: esto requiere que exista infrastructure/terraform/modules/gateway/Dockerfile
+            include+=('{"key":"gateway","image":"nutrygym-gateway","context":"infrastructure/terraform/modules/gateway","dockerfile":"infrastructure/terraform/modules/gateway/Dockerfile"}')
           fi
 
-          if echo "$CHANGES" | grep -q '"auth"'; then
-            export ITEM='{"image":"auth-service","context":"./services/auth-service","dockerfile":"./services/auth-service/Dockerfile"}'
-            add
+          if [[ "${{ steps.filter.outputs.auth }}" == "true" ]]; then
+            include+=('{"key":"auth","image":"auth-service","context":"services/auth-service","dockerfile":"services/auth-service/Dockerfile"}')
           fi
 
-          if echo "$CHANGES" | grep -q '"authorization"'; then
-            export ITEM='{"image":"authorization-service","context":"./services/role_permission-service","dockerfile":"./services/role_permission-service/Dockerfile"}'
-            add
+          if [[ "${{ steps.filter.outputs.authorization }}" == "true" ]]; then
+            include+=('{"key":"authorization","image":"authorization-service","context":"services/role_permission-service","dockerfile":"services/role_permission-service/Dockerfile"}')
           fi
 
-          if echo "$CHANGES" | grep -q '"user_profile"'; then
-            export ITEM='{"image":"user-profile-service","context":"./services/user-profile-service","dockerfile":"./services/user-profile-service/Dockerfile"}'
-            add
+          if [[ "${{ steps.filter.outputs.user_profile }}" == "true" ]]; then
+            include+=('{"key":"user_profile","image":"user-profile-service","context":"services/user-profile-service","dockerfile":"services/user-profile-service/Dockerfile"}')
           fi
 
-          if echo "$CHANGES" | grep -q '"nutrition_form"'; then
-            export ITEM='{"image":"nutrition-form-service","context":"./services/nutrition-form-service","dockerfile":"./services/nutrition-form-service/Dockerfile"}'
-            add
+          if [[ "${{ steps.filter.outputs.nutrition_form }}" == "true" ]]; then
+            include+=('{"key":"nutrition_form","image":"nutrition-form-service","context":"services/nutrition-form-service","dockerfile":"services/nutrition-form-service/Dockerfile"}')
           fi
 
-          if echo "$CHANGES" | grep -q '"plan_management"'; then
-            export ITEM='{"image":"plan-management-service","context":"./services/plan-management-service","dockerfile":"./services/plan-management-service/Dockerfile"}'
-            add
+          if [[ "${{ steps.filter.outputs.plan_management }}" == "true" ]]; then
+            include+=('{"key":"plan_management","image":"plan-management-service","context":"services/plan-management-service","dockerfile":"services/plan-management-service/Dockerfile"}')
           fi
 
-          if echo "$CHANGES" | grep -q '"ai_generator"'; then
-            export ITEM='{"image":"ai-generator-service","context":"./services/ai-generator-service","dockerfile":"./services/ai-generator-service/Dockerfile"}'
-            add
+          if [[ "${{ steps.filter.outputs.ai_generator }}" == "true" ]]; then
+            include+=('{"key":"ai_generator","image":"ai-generator-service","context":"services/ai-generator-service","dockerfile":"services/ai-generator-service/Dockerfile"}')
           fi
 
-          echo "Final matrix: $MATRIX"
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          if [[ "${{ steps.filter.outputs.notification }}" == "true" ]]; then
+            include+=('{"key":"notification","image":"notification-service","context":"services/notification-service","dockerfile":"services/notification-service/Dockerfile"}')
+          fi
+
+          if [[ ${#include[@]} -eq 0 ]]; then
+            echo 'any=false' >> "$GITHUB_OUTPUT"
+            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo 'any=true' >> "$GITHUB_OUTPUT"
+          json='{"include":['
+          first=true
+          for item in "${include[@]}"; do
+            if $first; then first=false; else json+=','; fi
+            json+="$item"
+          done
+          json+=']}'
+          echo "matrix=$json" >> "$GITHUB_OUTPUT"
 
   build-and-push:
     name: Build & Push changed images
     runs-on: ubuntu-latest
     needs: detect-changes
-    if: needs.detect-changes.outputs.matrix != '[]'
+    if: needs.detect-changes.outputs.any == 'true'
+
     strategy:
       fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify Dockerfile exists
+        shell: bash
+        run: |
+          if [[ ! -f "${{ matrix.dockerfile }}" ]]; then
+            echo "ERROR: Dockerfile not found at: ${{ matrix.dockerfile }}"
+            echo "Context: ${{ matrix.context }}"
+            ls -la "${{ matrix.context }}" || true
+            exit 1
+          fi
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -127,15 +140,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build & push
+      - name: Build & push (stable QA tag)
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image }}:${{ env.QA_TAG }}
-            ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image }}:qa-latest
-            ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image }}:qa-${{ github.sha }}
+            ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image }}:${{ env.STABLE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
