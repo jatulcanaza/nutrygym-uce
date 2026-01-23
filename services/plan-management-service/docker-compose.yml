@@ -33,6 +33,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: plan-rabbitmq
+    ports:
+      - "5673:5672"     # para que no choque con el global (si lo usas luego)
+      - "15673:15672"
+    networks:
+      - nutrigym-network
       
   plan-redis:
     image: redis:7-alpine

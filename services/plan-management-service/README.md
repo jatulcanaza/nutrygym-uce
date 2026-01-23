@@ -1,87 +1,114 @@
 # Plan Management Service
 
 ## Overview
-The Plan Management Service is a core microservice of the NutriGym platform.  
-It is responsible for creating, updating, versioning, and managing personalized meal plans for users.
+The Plan Management Service is a core microservice of the **NutriGym Platform**.
 
-This service represents the **core business logic** of the system and operates independently from authentication and user profile management.
+It is responsible for managing personalized meal plans for users and orchestrating AI-based plan generation, while emitting system events for observability and notifications.
 
 ---
 
 ## Responsibilities
-- Create personalized meal plans
-- Update and version existing plans
-- Associate plans with authenticated users
-- Maintain historical records of meal plans
-- Expose secure REST APIs for plan management
+- Create and update personalized meal plans
+- Maintain the current active plan per user
+- Version and regenerate plans
+- Orchestrate AI-based plan generation
+- Publish plan lifecycle events to RabbitMQ
 
 ---
 
 ## Technologies
 - **FastAPI**
 - **PostgreSQL**
+- **Redis**
+- **RabbitMQ**
 - **JWT Authentication**
 - **Docker**
 - **OpenAPI (Swagger)**
 
 ---
 
-## Authentication
-All endpoints are protected using **JWT Bearer tokens** issued by the Auth Service.
+## Event-Driven Integration
+This service publishes **notification events** to **RabbitMQ** on key actions:
 
-The service validates:
-- User identity (`sub`)
-- Token integrity
-- Token expiration
+- Plan generated
+- Plan regenerated
+- Plan ended
+- Plan canceled
+- Plan generation errors
+
+Events are published to:
+
+````
+
+notifications.queue
+
+````
+
+These events are later:
+- Consumed by the **Notification Service**
+- Broadcast via **MQTT**
+- Optionally delivered via **Email**
+
+> ⚠️ This service does **not** send emails directly.
+
+---
+
+## Authentication
+All external endpoints are protected using **JWT Bearer tokens** issued by the Auth Service.
 
 ---
 
 ## API Endpoints
+
 | Method | Endpoint | Description |
 |------|---------|------------|
-| GET | `/plans` | Get all plans of the authenticated user |
-| POST | `/plans` | Create a new meal plan |
-| GET | `/plans/{plan_id}` | Get a specific plan |
-| PUT | `/plans/{plan_id}` | Update an existing plan |
-| DELETE | `/plans/{plan_id}` | Delete a plan |
-| GET | `/plans/current` | Get current active plan |
-| GET | `/health` | Service health check |
+| GET | `/plans` | Get all user plans |
+| POST | `/plans` | Create a plan |
+| GET | `/plans/current` | Get active plan |
+| POST | `/plans/generate` | Generate plan using AI |
+| POST | `/plans/current/regenerate` | Regenerate active plan |
+| POST | `/plans/current/end` | End active plan |
+| POST | `/plans/current/cancel` | Cancel active plan |
+| GET | `/health` | Health check |
 
 ---
 
 ## Environment Variables
-The service is configured via a `.env` file:
 
 ```env
 PORT=3005
-DATABASE_URL=postgresql://user:password@postgres:5432/nutrigym_plans
+
+DATABASE_URL=postgresql://user:password@plan-postgres:5432/nutrigym_plans
+
 JWT_SECRET=your_jwt_secret
 JWT_ALGORITHM=HS256
+
+RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+NOTIF_QUEUE=notifications.queue
 ````
 
 ---
 
 ## Architecture Role
 
-* **Domain:** Core System
-* **Consumes:** Authentication tokens
-* **Produces:** Structured meal plan data
-* **Future integrations:** AI Generator, Event Streaming (Kafka)
+* **Domain:** Core Business
+* **Consumes:** Auth Service, User Profile, Nutrition Form, AI Generator
+* **Produces:** Meal Plans + Notification Events
+* **Pattern:** Event-driven core service
 
 ---
 
 ## Status
 
 ✅ Stable
-🚀 Ready for integration with Nutrition Form and AI Generator services
+🚀 Integrated with Notification & Dashboard Services
 
 ---
-```
+
 ## 👨‍💻 Author
 
 **Juan Tulcanaza**
 Information Systems Engineering
 Central University of Ecuador
 Developed as part of the **NutriGym UCE Platform**
-
 
