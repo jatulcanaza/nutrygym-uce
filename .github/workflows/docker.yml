@@ -47,6 +47,8 @@ jobs:
               - "services/ai-generator-service/**"
             notification:
               - "services/notification-service/**"
+            notification_dashboard:
+              - "services/notification-dashboard/**"
 
       - name: Build matrix from changes
         id: set-matrix
@@ -90,6 +92,10 @@ jobs:
           if [[ "${{ steps.filter.outputs.notification }}" == "true" ]]; then
             include+=('{"key":"notification","image":"notification-service","context":"services/notification-service","dockerfile":"services/notification-service/Dockerfile"}')
           fi
+          if [[ "${{ steps.filter.outputs.notification_dashboard }}" == "true" ]]; then
+            include+=('{"key":"notification_dashboard","image":"notification-dashboard","context":"services/notification-dashboard","dockerfile":"services/notification-dashboard/Dockerfile"}')
+          fi
+
 
           if [[ ${#include[@]} -eq 0 ]]; then
             echo 'any=false' >> "$GITHUB_OUTPUT"
