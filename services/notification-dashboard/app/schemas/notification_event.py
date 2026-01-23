@@ -2,20 +2,19 @@ from typing import Any, Dict, Optional, Literal
 from pydantic import BaseModel, EmailStr, Field
 
 NotificationType = Literal["email", "alert", "system"]
-SeverityType = Literal["info", "warning", "error"]
 
 class NotificationEvent(BaseModel):
     """
-    Incoming event contract (RabbitMQ).
+    Contrato de evento entrante desde RabbitMQ.
     """
     type: NotificationType = Field(default="system")
     title: str = Field(min_length=1, max_length=200)
     message: str = Field(min_length=1, max_length=20000)
 
-    # User email (optional)
+    # Email
     email: Optional[EmailStr] = None
 
-    # Metadata
+    # Metadata (opcional)
     source_service: Optional[str] = None
-    severity: SeverityType = Field(default="info")
+    severity: Optional[Literal["info", "warning", "error"]] = "info"
     meta: Dict[str, Any] = Field(default_factory=dict)

@@ -1,0 +1,13 @@
+services:
+  notification-dashboard:
+    build: .
+    container_name: notification-dashboard
+    env_file: .env
+    ports:
+      - "3012:3012"
+    networks:
+      - nutrigym-network
+
+networks:
+  nutrigym-network:
+    external: true

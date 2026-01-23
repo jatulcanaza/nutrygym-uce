@@ -18,9 +18,12 @@ def _process_message(body: bytes) -> None:
 
 def start_consumer_forever() -> None:
     """
-    Consumer robusto:
-    - reconecta en loop si RabbitMQ no está listo
-    - ack manual: solo ack si procesó OK
+    Robust consumer:
+    - reconnect loop if RabbitMQ is not ready
+    - manual ack
+    Strategy:
+    - If payload is invalid/unparseable => NACK requeue (producer bug or transient)
+    - If processing fails (SMTP/MQTT) => ACK to avoid infinite requeue loops
     """
     while True:
         try:
@@ -37,10 +40,13 @@ def start_consumer_forever() -> None:
                 try:
                     _process_message(body)
                     ch.basic_ack(delivery_tag=method.delivery_tag)
-                except Exception as e:
-                    # No ack => requeue (entrega garantizada)
-                    log.exception("Error processing message; will be requeued. error=%s", str(e))
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    log.exception("Invalid message format; requeueing. error=%s", str(e))
                     ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                except Exception as e:
+                    # Do not requeue forever on SMTP/MQTT failures
+                    log.exception("Processing failed; ACK to avoid infinite loop. error=%s", str(e))
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
 
             channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=callback)
             channel.start_consuming()

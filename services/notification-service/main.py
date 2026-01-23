@@ -13,7 +13,6 @@ app.include_router(health_router)
 
 @app.on_event("startup")
 def startup():
-    # Arranca consumer en background
     t = Thread(target=start_consumer_forever, daemon=True)
     t.start()
-    log.info("Notification Service started (consumer thread running).")
+    log.info("Notification Service started (RabbitMQ consumer thread running).")

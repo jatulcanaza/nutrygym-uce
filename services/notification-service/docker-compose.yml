@@ -1,13 +1,4 @@
 services:
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: notification-rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    networks:
-      - notification-net
-
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: notification-mosquitto
@@ -16,8 +7,7 @@ services:
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     networks:
-      - notification-net
-
+      - nutrigym-network
 
   notification-service:
     build: .
@@ -26,11 +16,10 @@ services:
     ports:
       - "3011:3011"
     depends_on:
-      - rabbitmq
       - mosquitto
     networks:
-      - notification-net
+      - nutrigym-network
 
 networks:
-  notification-net:
-    driver: bridge
+  nutrigym-network:
+    external: true

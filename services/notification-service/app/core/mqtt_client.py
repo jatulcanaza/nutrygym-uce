@@ -2,7 +2,7 @@ import json
 import time
 import paho.mqtt.client as mqtt
 
-from app.core.config import MQTT_HOST, MQTT_PORT, MQTT_QOS
+from app.core.config import MQTT_HOST, MQTT_PORT, MQTT_QOS, MQTT_USERNAME, MQTT_PASSWORD
 from app.core.logger import get_logger
 
 log = get_logger("mqtt-client")
@@ -11,7 +11,6 @@ _client: mqtt.Client | None = None
 _connected: bool = False
 
 def _on_connect(client, userdata, flags, reason_code, properties=None):
-    # paho-mqtt v2 usa reason_code (int-like)
     global _connected
     try:
         rc = int(reason_code)
@@ -34,27 +33,49 @@ def _on_disconnect(client, userdata, reason_code, properties=None):
         rc = None
     log.warning("MQTT disconnected rc=%s", rc)
 
-def _get_client() -> mqtt.Client:
-    global _client
-    if _client:
-        return _client
-
+def _build_client() -> mqtt.Client:
     client = mqtt.Client()
+    if MQTT_USERNAME and MQTT_PASSWORD:
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+
     client.on_connect = _on_connect
     client.on_disconnect = _on_disconnect
 
-    # Conecta en modo bloqueante (más confiable para demo)
+    # reconnect strategy
+    try:
+        client.reconnect_delay_set(min_delay=1, max_delay=10)
+    except Exception:
+        pass
+
+    return client
+
+def _ensure_connected(client: mqtt.Client) -> None:
+    # Si ya está conectado, listo
+    if _connected:
+        return
+
+    # Intenta conectar (no revienta si falla)
     try:
         client.connect(MQTT_HOST, MQTT_PORT, keepalive=30)
     except Exception as e:
         log.error("MQTT connect error: %s", str(e))
 
+def _get_client() -> mqtt.Client:
+    global _client
+    if _client:
+        return _client
+
+    client = _build_client()
+    _ensure_connected(client)
     client.loop_start()
     _client = client
     return client
 
 def publish(topic: str, payload: dict) -> None:
     client = _get_client()
+
+    # Reintenta conectar antes de publicar
+    _ensure_connected(client)
 
     # Espera hasta 10s para conexión real
     start = time.time()
@@ -68,7 +89,6 @@ def publish(topic: str, payload: dict) -> None:
     data = json.dumps(payload, ensure_ascii=False)
     info = client.publish(topic, data, qos=MQTT_QOS)
 
-    # wait_for_publish ayuda a confirmar envío
     try:
         info.wait_for_publish(timeout=3)
     except Exception:
