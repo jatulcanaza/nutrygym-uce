@@ -21,7 +21,6 @@ services:
     networks:
       - nutrigym-network
 
-
   # ======================
   # AUTH SERVICE + POSTGRES
   # ======================
@@ -91,6 +90,28 @@ services:
     restart: unless-stopped
     networks:
       - nutrigym-network
+
+  # ======================
+  # RABBITMQ (GLOBAL)
+  # ======================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: nutrigym-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: nutrigym
+      RABBITMQ_DEFAULT_PASS: nutrigympass
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
 
   # ======================
   # NUTRITION FORM + POSTGRES + REDIS + KAFKA
@@ -185,9 +206,17 @@ services:
         condition: service_healthy
       plan-redis:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - nutrigym-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:3005/health').read()\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   plan-postgres:
     image: postgres:15-alpine
@@ -237,6 +266,54 @@ services:
     networks:
       - nutrigym-network
 
+  # ======================
+  # NOTIFICATIONS (MOSQUITTO + SERVICE + DASHBOARD)
+  # ======================
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: notification-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./services/notification-service/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    env_file: ./services/notification-service/.env
+    ports:
+      - "3011:3011"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
+
+  notification-dashboard:
+    build:
+      context: ./services/notification-dashboard
+      dockerfile: Dockerfile
+    container_name: notification-dashboard
+    env_file: ./services/notification-dashboard/.env
+    ports:
+      - "3012:3012"
+    depends_on:
+      - notification-service
+      - mosquitto
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
+
 networks:
   nutrigym-network:
     driver: bridge
@@ -247,3 +324,5 @@ volumes:
   nutrition_postgres_data:
   plan_postgres_data:
   ai_mongo_data:
+  mosquitto_data:
+  mosquitto_log:
