@@ -150,3 +150,16 @@ Thumbs.db
 
 # Temporary
 .cache/
+
+# TurboRepo
+.turbo/
+**/.turbo/
+
+# Expo / Mobile
+apps/mobile/mobile/eas.json
+
+# Terraform
+*.tfplan
+tfplan
+tfshow.txt
+.terraform/
