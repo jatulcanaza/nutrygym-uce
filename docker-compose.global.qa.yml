@@ -1,14 +1,18 @@
 version: "3.9"
 
 services:
+  # ======================
+  # FRONT + GATEWAY
+  # ======================
   web:
-    image: juantulcanaza/nutrygym-web:qa-1
+    image: juantulcanaza/nutrygym-web:qa
     container_name: nutrigym-web
     restart: unless-stopped
     networks:
       - nutrigym-network
+
   gateway:
-    image: juantulcanaza/nutrygym-gateway:qa-3
+    image: juantulcanaza/nutrygym-gateway:qa
     container_name: nutrigym-gateway
     ports:
       - "80:80"
@@ -20,13 +24,19 @@ services:
       - nutrition-form
       - plan-management
       - ai-generator-service
+      - rabbitmq
+      - mosquitto
+      - notification-service
+      - notification-dashboard
     restart: unless-stopped
     networks:
       - nutrigym-network
 
+  # ======================
   # AUTH SERVICE + POSTGRES
+  # ======================
   auth-service:
-    image: juantulcanaza/auth-service:qa-1
+    image: juantulcanaza/auth-service:qa
     container_name: auth-service
     env_file: ./.env.auth
     depends_on:
@@ -48,9 +58,11 @@ services:
     networks:
       - nutrigym-network
 
-  # USER PROFILE + POSTGRES
+  # ===========================
+  # USER PROFILE SERVICE + DB
+  # ===========================
   user-profile-service:
-    image: juantulcanaza/user-profile-service:qa-1
+    image: juantulcanaza/user-profile-service:qa
     container_name: user-profile-service
     env_file: ./.env.user-profile
     depends_on:
@@ -79,18 +91,43 @@ services:
     networks:
       - nutrigym-network
 
+  # ======================
   # AUTHORIZATION (RBAC)
+  # ======================
   authorization-service:
-    image: juantulcanaza/authorization-service:qa-1
+    image: juantulcanaza/authorization-service:qa
     container_name: authorization-service
     env_file: ./.env.authz
     restart: unless-stopped
     networks:
       - nutrigym-network
 
+  # ======================
+  # RABBITMQ (GLOBAL)
+  # ======================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: nutrigym-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: nutrigym
+      RABBITMQ_DEFAULT_PASS: nutrigympass
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  # ======================
   # NUTRITION FORM + POSTGRES + REDIS + KAFKA
+  # ======================
   nutrition-form:
-    image: juantulcanaza/nutrition-form-service:qa-1
+    image: juantulcanaza/nutrition-form-service:qa
     container_name: nutrition-form
     env_file: ./.env.nutrition
     depends_on:
@@ -134,7 +171,9 @@ services:
     networks:
       - nutrigym-network
 
+  # ======================
   # KAFKA
+  # ======================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.3
     container_name: nutrigym-zookeeper
@@ -165,9 +204,11 @@ services:
     networks:
       - nutrigym-network
 
+  # ======================
   # PLAN MANAGEMENT + POSTGRES + REDIS
+  # ======================
   plan-management:
-    image: juantulcanaza/plan-management-service:qa-1
+    image: juantulcanaza/plan-management-service:qa
     container_name: plan-management
     env_file: ./.env.plans
     depends_on:
@@ -175,6 +216,8 @@ services:
         condition: service_healthy
       plan-redis:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - nutrigym-network
@@ -204,7 +247,9 @@ services:
     networks:
       - nutrigym-network
 
+  # ======================
   # AI GENERATOR + MONGO
+  # ======================
   ai-generator-mongo:
     image: mongo:7.0
     container_name: ai-generator-mongo
@@ -215,12 +260,55 @@ services:
       - nutrigym-network
 
   ai-generator-service:
-    image: juantulcanaza/ai-generator-service:qa-1
+    image: juantulcanaza/ai-generator-service:qa
     container_name: ai-generator-service
     env_file: ./.env.ai
     depends_on:
       - ai-generator-mongo
       - kafka
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
+
+  # ======================
+  # NOTIFICATIONS (MQTT + EMAIL)
+  # ======================
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: notification-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./services/notification-service/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
+
+  notification-service:
+    image: juantulcanaza/notification-service:qa
+    container_name: notification-service
+    env_file: ./.env.notifications
+    ports:
+      - "3011:3011"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - nutrigym-network
+
+  notification-dashboard:
+    image: juantulcanaza/notification-dashboard:qa
+    container_name: notification-dashboard
+    ports:
+      - "3012:3012"
+    depends_on:
+      - notification-service
+      - mosquitto
     restart: unless-stopped
     networks:
       - nutrigym-network
@@ -235,3 +323,5 @@ volumes:
   nutrition_postgres_data:
   plan_postgres_data:
   ai_mongo_data:
+  mosquitto_data:
+  mosquitto_log:
