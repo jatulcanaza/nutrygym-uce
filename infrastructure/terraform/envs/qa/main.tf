@@ -71,7 +71,7 @@ module "db_security_group" {
   name          = "nutrygym-qa-db-sg"
   vpc_id        = module.vpc.vpc_id
   app_sg_id     = module.security_groups.microservices_sg_id
-  bastion_sg_id = module.bastion.bastion_sg_id 
+  bastion_sg_id = module.bastion.bastion_sg_id
   allowed_ports = [5432, 5433, 5434, 5435, 6379, 6380, 27017]
 }
 
