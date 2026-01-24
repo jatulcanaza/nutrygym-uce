@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
 
 const DEFAULT_URL =
-  "http://nutrygym-uce-qa-alb-1212578885.us-east-1.elb.amazonaws.com/plans";
+  "http://nutrygym-uce-qa-alb-1894441400.us-east-1.elb.amazonaws.com/";
 
 export default function WebViewScreen() {
   const router = useRouter();

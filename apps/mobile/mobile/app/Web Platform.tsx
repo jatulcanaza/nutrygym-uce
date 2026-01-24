@@ -1,7 +1,7 @@
 import { View, Text, Image, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 
-const WEB_URL = "http://nutrygym-uce-qa-alb-1212578885.us-east-1.elb.amazonaws.com/plans"; // cámbialo por tu URL real o dominio
+const WEB_URL = "http://nutrygym-uce-qa-alb-1894441400.us-east-1.elb.amazonaws.com/"; // cámbialo por tu URL real o dominio
 
 export default function Platform() {
   const router = useRouter();

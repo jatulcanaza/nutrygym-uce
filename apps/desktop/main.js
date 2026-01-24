@@ -1,7 +1,7 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 
-const APP_URL = "http://nutrygym-uce-qa-alb-1212578885.us-east-1.elb.amazonaws.com/"; // tu web en AWS
+const APP_URL = "http://nutrygym-uce-qa-alb-1894441400.us-east-1.elb.amazonaws.com/"; // tu web en AWS
 
 function createWindow() {
   const win = new BrowserWindow({
