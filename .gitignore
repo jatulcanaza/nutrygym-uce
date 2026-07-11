@@ -186,3 +186,26 @@ tfplan*
 node_modules/
 dist/
 build/
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan*
+.terraform/
+
+# Node
+node_modules/
+dist/
+build/
