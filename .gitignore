@@ -163,3 +163,26 @@ apps/mobile/mobile/eas.json
 tfplan
 tfshow.txt
 .terraform/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+coverage.xml
+
+# Virtual environments
+.venv/
+venv/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan*
+.terraform/
+
+# Node
+node_modules/
+dist/
+build/
