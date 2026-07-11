@@ -1,34 +1,30 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.pool import StaticPool
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Si existen todas las variables, usar PostgreSQL.
-if all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME]):
-
+if not DATABASE_URL:
     DATABASE_URL = (
         f"postgresql+psycopg://"
-        f"{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        f"{os.getenv('DB_USER')}:"
+        f"{os.getenv('DB_PASSWORD')}@"
+        f"{os.getenv('DB_HOST')}:"
+        f"{os.getenv('DB_PORT')}/"
+        f"{os.getenv('DB_NAME')}"
     )
 
-else:
-    # Base temporal para pruebas (GitHub Actions)
-    DATABASE_URL = "sqlite:///:memory:"
+is_sqlite = DATABASE_URL.startswith("sqlite")
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True,
-    connect_args={"check_same_thread": False}
-    if DATABASE_URL.startswith("sqlite")
-    else {},
+    echo=False,
+    connect_args={"check_same_thread": False} if is_sqlite else {},
+    poolclass=StaticPool if is_sqlite else None,
 )
 
 SessionLocal = sessionmaker(
