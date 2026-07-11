@@ -28,7 +28,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
 
       - name: Install dependencies
         working-directory: services/auth-service
@@ -37,26 +37,19 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
-      - name: Run unit tests
+      - name: Run Unit Tests
         working-directory: services/auth-service
         run: |
           pytest tests --cov=app --cov-report=xml
 
-      - name: Verify coverage.xml
-        working-directory: services/auth-service
-        run: |
-          ls -la
-          test -f coverage.xml
-
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: SonarQube Quality Gate
+      - name: Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1
         timeout-minutes: 5
         env:
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
