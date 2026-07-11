@@ -40,6 +40,16 @@ jobs:
 
       - name: Run Unit Tests
         working-directory: services/auth-service
+        env:
+          JWT_SECRET: ci-test-secret-not-for-production
+          JWT_ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+          REFRESH_TOKEN_EXPIRE_DAYS: "7"
+          ALLOWED_EMAIL_DOMAIN: uce.edu.ec
+          ALLOWED_ORIGINS: "http://localhost"
+          NODE_ENV: test
+          LOG_LEVEL: DEBUG
+          DATABASE_URL: "sqlite:///./test.db"
         run: |
           pytest tests --cov=app --cov-report=xml
 
