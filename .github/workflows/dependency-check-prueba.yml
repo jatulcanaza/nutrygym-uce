@@ -1,0 +1,44 @@
+name: Auditoría de Seguridad - Dependency-Check
+
+on:
+  push:
+    branches:
+      - qa
+      - main
+
+  pull_request:
+    branches:
+      - qa
+      - main
+
+jobs:
+  security-scan:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Ejecutar OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        id: dependency-check
+        continue-on-error: true
+
+        with:
+          project: "NutriGym"
+          path: "."
+          format: "HTML"
+          out: "reports"
+
+          args: >
+            --disableNodeAudit
+            --disablePnpmAudit
+
+      - name: Subir Reporte
+        uses: actions/upload-artifact@v4
+
+        with:
+          name: dependency-check-report
+          path: reports/dependency-check-report.html
