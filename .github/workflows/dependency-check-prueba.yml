@@ -21,9 +21,31 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v4
 
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Actualizar pip
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Buscar archivos requirements.txt
+        run: |
+          echo "=== Requirements encontrados ==="
+          find services -name "requirements.txt"
+
+      - name: Instalar dependencias de todos los microservicios
+        run: |
+          find services -name "requirements.txt" -exec pip install -r {} \;
+
+      - name: Mostrar paquetes instalados
+        run: |
+          pip list
+
       - name: Ejecutar OWASP Dependency-Check
-        uses: dependency-check/Dependency-Check_Action@main
         id: dependency-check
+        uses: dependency-check/Dependency-Check_Action@main
         continue-on-error: true
 
         with:
@@ -33,12 +55,12 @@ jobs:
           out: "reports"
 
           args: >
+            --enableExperimental
             --disableNodeAudit
             --disablePnpmAudit
 
-      - name: Subir Reporte
+      - name: Subir Reporte HTML
         uses: actions/upload-artifact@v4
-
         with:
           name: dependency-check-report
           path: reports/dependency-check-report.html
